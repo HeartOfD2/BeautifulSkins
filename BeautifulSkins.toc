@@ -1,0 +1,36 @@
+## Interface: 16001
+## Title: BeautifulSkins
+## Title-deDE: BeautifulSkins
+## Notes: A modern, flat look for GearQuest Forever, SkillUp Forever, Whisper Messenger and Waypoint UI. EllesmereUI is optional.
+## Notes-deDE: Ein modernes, flaches Aussehen für GearQuest Forever, SkillUp Forever, Whisper Messenger und Waypoint UI. EllesmereUI ist optional.
+## Author: HeartOfD2
+## Version: 0.1.0
+## X-Website: https://github.com/HeartOfD2/BeautifulSkins
+## Category: Miscellaneous
+## IconTexture: Interface\AddOns\BeautifulSkins\Media\Icon
+## OptionalDeps: EllesmereUI, EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIQuestTracker
+## SavedVariables: BeautifulSkinsDB
+## AddonCompartmentFunc: BeautifulSkins_OnCompartmentClick
+## AddonCompartmentFuncOnEnter: BeautifulSkins_OnCompartmentEnter
+## AddonCompartmentFuncOnLeave: BeautifulSkins_OnCompartmentLeave
+
+Locales\enUS.lua
+Locales\deDE.lua
+Core\Core.lua
+Core\Env.lua
+Core\EUI.lua
+UI\Theme.lua
+UI\Skin.lua
+UI\Arrow.lua
+UI\TrackerStyle.lua
+Modules\WhisperMessenger.lua
+Modules\WhisperButton.lua
+Modules\SkillUp.lua
+Modules\WaypointUI.lua
+Modules\GearQuestColumn.lua
+Modules\GearQuestTracker.lua
+Modules\GearQuestArrow.lua
+Modules\GearQuestWindow.lua
+Settings\Settings.lua
+Settings\Panel.lua
+Settings\EUIPages.lua

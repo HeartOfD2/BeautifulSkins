@@ -1,0 +1,11 @@
+package-as: BeautifulSkins
+
+ignore:
+  - docs
+  - .github
+  - .gitignore
+  - README.md
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
