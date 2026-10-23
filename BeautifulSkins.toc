@@ -6,6 +6,7 @@
 ## Author: HeartOfD2
 ## Version: 0.1.0
 ## X-Website: https://github.com/HeartOfD2/BeautifulSkins
+## X-Curse-Project-ID: 1762029
 ## Category: Miscellaneous
 ## IconTexture: Interface\AddOns\BeautifulSkins\Media\Icon
 ## OptionalDeps: EllesmereUI, EllesmereUIChat, EllesmereUIBlizzardSkin, EllesmereUIQuestTracker

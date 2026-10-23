@@ -1,5 +1,7 @@
 # BeautifulSkins
 
+![BeautifulSkins](docs/logo.png)
+
 A modern, flat look for **GearQuest Forever**, **SkillUp Forever**, **Whisper Messenger** and **Waypoint UI** on
 **World of Warcraft: Forever**, in one addon.
 
