@@ -1,5 +1,10 @@
 package-as: BeautifulSkins
 
+move-folders:
+  BeautifulSkins/BeautifulSkins_Extras: BeautifulSkins_Extras
+  BeautifulSkins/BeautifulSkins_Attune: BeautifulSkins_Attune
+  BeautifulSkins/BeautifulSkins_RestedXP: BeautifulSkins_RestedXP
+
 ignore:
   - docs
   - .github

@@ -57,8 +57,21 @@ local function DistanceRow(text)
     return text
 end
 
+-- The RestedXP pack draws the one arrow for GearQuest's hunts too (they run as SPF journeys): ours stays off then.
+local function Shared()
+    return type(ns.GQArrowShared) == "function" and ns.GQArrowShared() == true
+end
+
+local sharedBefore, Place -- Place is defined further down
+
 local function Draw(left)
     if not (arrow and guide) then return end
+    local shared = Shared()
+    if shared ~= sharedBefore then -- the RestedXP pack took over (or gave back) the arrow: move or hide ours
+        sharedBefore = shared
+        if Place then Place() end
+    end
+    if shared then return end
     if type(left) ~= "number" or ns.IsSecret(left) then return end
     local index = math.floor(left * SHEET_FRAMES + 0.5) % SHEET_FRAMES
     local text = guide.distanceText
@@ -152,9 +165,16 @@ local function BuildHolder()
 end
 
 -- Puts the arrow above GearQuest's tracker or on its own frame (after a setting changed).
-local function Place()
+function Place()
     if not (holder and guide) then return end
     holder:ClearAllPoints()
+    if Shared() then
+        holder:Hide()
+        closeBtn:Hide()
+        Skin.Quiet(guide, guide.SetAlpha, 1)
+        guide:EnableMouse(true)
+        return
+    end
     if Detached() then
         holder:SetParent(UIParent)
         holder:SetFrameStrata("MEDIUM")
@@ -195,7 +215,7 @@ local function Setup()
     end
     Skin.Hide(T(frame.distance))
     -- in free mode GearQuest's (invisible) guide frame still decides when there is something to show
-    frame:HookScript("OnShow", function() if Detached() and holder then holder:Show() end end)
+    frame:HookScript("OnShow", function() if Detached() and not Shared() and holder then holder:Show() end end)
     frame:HookScript("OnHide", function() if Detached() and holder then holder:Hide() end end)
     Skin.Hook(frame, "SetAlpha", function(self, a)
         if Skin.IsBusy(self) or not Detached() or a == 0 then return end

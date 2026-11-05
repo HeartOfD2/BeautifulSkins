@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.2.0 (2026-11-05)
+
+BeautifulSkins now also contains the former addons **BeautifulAttune** and **EUI RestedXP Skin**. Update by replacing the
+folders; the four folders of the package belong together.
+
+- **Attune** and **RestedXP Guides** skins are part of BeautifulSkins (their settings are taken over on the first
+  start). Attune's second window "Attune: Next" is skinned as well, and the Attune header has two new buttons: one
+  switches that window on and off, one opens Attune's own options. Tested with Attune 16001-35.
+- **Thirteen themes** instead of seven: Standard, Graphite, Midnight, Frost, Nord, Emerald, Ember, High contrast, Light,
+  Rosé, Parchment, Classic and, with EllesmereUI, EllesmereUI. A theme gallery shows them side by side.
+- **Theme editor**: make your own themes from any theme, pick every colour, see the contrast live, and share a theme
+  as a code (export / import).
+- Every theme was checked for readable contrast (WCAG 4.5:1); a class or own accent colour is adjusted where it is
+  used as text.
+- **One arrow for GearQuest Forever and RestedXP**: GearQuest hunts run as ShortestPathForever journeys on the arrow of
+  the RestedXP skin; a switch (guide window, tracker, Shift-click on the arrow, key bindings, `/brxp target`) goes back
+  and forth between the guide's target and your own journey. While that arrow runs, GearQuest's own arrow options are off.
+- New arrow option **Arrow to the next map marker** (the marker tracked right now, as ShortestPathForever's own arrow),
+  and the arrow shows the distance to the next bend while the goal is on another continent.
+- Own options window when EllesmereUI is not installed: themes, bundled fonts, accent colours, minimap button and quick
+  actions; with EllesmereUI the same pages appear in its options window (switchable).
+- The skins are separate folders that BeautifulSkins loads; each one can be switched off under General.
+- Fixes: dragging the Attune list's scroll bar follows the mouse; the RestedXP guide window keeps its place when its size
+  grip is dragged.
+
 ## 0.1.0 (beta)
 
 First public version, built for WoW: Forever (Interface 16001). Tested with GearQuest Forever 1.0.4, SkillUp Forever

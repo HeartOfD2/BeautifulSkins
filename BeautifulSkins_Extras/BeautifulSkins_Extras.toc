@@ -1,0 +1,32 @@
+## Interface: 16001
+## Title: BeautifulSkins: |cff0cd29dMore skins|r
+## Title-deDE: BeautifulSkins: |cff0cd29dWeitere Skins|r
+## Notes: Skins for GearQuest Forever, SkillUp Forever, Whisper Messenger and Waypoint UI. Loaded by BeautifulSkins.
+## Notes-deDE: Skins für GearQuest Forever, SkillUp Forever, Whisper Messenger und Waypoint UI. Wird von BeautifulSkins geladen.
+## Author: HeartOfD2
+## Version: 0.2.0
+## Category: Miscellaneous
+## IconTexture: Interface\AddOns\BeautifulSkins\Media\Icon
+## LoadOnDemand: 1
+## Dependencies: BeautifulSkins
+## SavedVariables: BeautifulSkinsExtrasDB
+## X-Beautiful-Host: BeautifulSkins
+
+Pack.lua
+Locales\enUS.lua
+Locales\deDE.lua
+Core\Core.lua
+Core\EUI.lua
+UI\Theme.lua
+UI\Skin.lua
+UI\Arrow.lua
+UI\TrackerStyle.lua
+Modules\WhisperMessenger.lua
+Modules\WhisperButton.lua
+Modules\SkillUp.lua
+Modules\WaypointUI.lua
+Modules\GearQuestColumn.lua
+Modules\GearQuestTracker.lua
+Modules\GearQuestArrow.lua
+Modules\GearQuestWindow.lua
+Settings\Settings.lua

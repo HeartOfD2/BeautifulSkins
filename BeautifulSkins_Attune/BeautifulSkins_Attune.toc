@@ -1,0 +1,31 @@
+## Interface: 16001
+## Title: BeautifulSkins: |cff0cd29dAttune|r
+## Title-deDE: BeautifulSkins: |cff0cd29dAttune|r
+## Notes: A modern, searchable look for the Attune addon. Loaded by its host addon.
+## Notes-deDE: Ein modernes, durchsuchbares Aussehen für das Addon Attune. Wird vom Haupt-Addon geladen.
+## Author: HeartOfD2
+## Version: 0.2.0
+## Category: Quests
+## IconTexture: Interface\AddOns\BeautifulSkins\Media\Icon
+## LoadOnDemand: 1
+## Dependencies: BeautifulSkins, Attune
+## SavedVariables: BeautifulSkinsAttuneDB
+## X-Beautiful-Host: BeautifulSkins
+
+Pack.lua
+Locales\enUS.lua
+Locales\deDE.lua
+Core.lua
+Adapters\AttuneCompat.lua
+Adapters\Attune.lua
+Skin\Skin.lua
+Skin\Window.lua
+Skin\NextWindow.lua
+Skin\Tree.lua
+Skin\Graph.lua
+Skin\Zoom.lua
+Skin\Detail.lua
+Skin\Results.lua
+Search\Index.lua
+Search\SearchUI.lua
+Settings.lua

@@ -1,11 +1,14 @@
--- English is the source language: every key is its own English text. Locales\deDE.lua fills ns.locales.deDE; Core picks
--- the table at load (setting "language": automatic = EllesmereUI's language, else the client's).
+-- Base locale: the keys ARE the English text, so this file only creates the shared tables.
 local _, ns = ...
-
 ns.locales = ns.locales or {}
+ns.locales.enUS = {}
 
+-- L resolves against the active locale table (chosen in ADDON_LOADED) and falls back to the key.
+ns.activeLocale = ns.locales.enUS
 ns.L = setmetatable({}, {
     __index = function(_, key)
+        local text = ns.activeLocale[key]
+        if text ~= nil then return text end
         return key
     end,
 })

@@ -1,0 +1,118 @@
+local _, ns = ...
+
+ns.locales.deDE = {
+    ["%d of %d skins active"] = "%d von %d Skins aktiv",
+    ["%s whisper - state of the Whisper Messenger button"] =
+        "%s whisper – Zustand des Whisper-Messenger-Knopfs",
+    ["Accent"] = "Akzent",
+    ["active"] = "aktiv",
+    ["addon not loaded"] = "Addon nicht geladen",
+    ["Arrived"] = "Angekommen",
+    ["ARROW"] = "PFEIL",
+    ["Arrow on (click to stop)"] = "Pfeil an (Klick beendet)",
+    ["Background opacity"] = "Deckkraft des Hintergrunds",
+    ["Bottom left"] = "Unten links",
+    ["Bottom right"] = "Unten rechts",
+    ["By direction"] = "Nach Richtung",
+    ["By direction: green ahead, yellow to the side, red behind."] =
+        "Nach Richtung: grün geradeaus, gelb seitlich, rot hinter dir.",
+    ["CHAT BUTTON"] = "CHAT-KNOPF",
+    ["Chevron"] = "Chevron",
+    ["Classic"] = "Klassisch",
+    ["Click: open or close"] = "Klick: öffnen oder schließen",
+    ["Click: show the arrow"] = "Klick: Pfeil zeigen",
+    ["Colour"] = "Farbe",
+    ["Corner without EllesmereUI Chat"] = "Ecke ohne EllesmereUI Chat",
+    ["Dark flat look"] = "Dunkler, flacher Look",
+    ["Distance unit"] = "Einheit der Entfernung",
+    ["Drag to move the arrow"] = "Ziehen, um den Pfeil zu verschieben",
+    ["Each skin works only while its addon is installed. Changes take effect after a reload."] =
+        "Jeder Skin wirkt nur, solange sein Addon installiert ist. Änderungen wirken nach einem Neuladen.",
+    ["EllesmereUI font for the texts"] = "EllesmereUI-Schrift für die Texte",
+    ["failed"] = "Fehler",
+    ["Free arrow"] = "Freier Pfeil",
+    ["GearQuest"] = "GearQuest",
+    ["GearQuest hunts"] = "GearQuest-Jagden",
+    ["GearQuest, SkillUp, Whisper Messenger and Waypoint UI."] =
+        "GearQuest, SkillUp, Whisper Messenger und Waypoint UI.",
+    ["GearQuest: arrow"] = "GearQuest: Pfeil",
+    ["GearQuest: popups and toasts"] = "GearQuest: Popups und Meldungen",
+    ["GearQuest: tracker"] = "GearQuest: Tracker",
+    ["GearQuest: window"] = "GearQuest: Fenster",
+    ["Glow while a whisper is unread"] = "Leuchten, solange eine Flüsternachricht ungelesen ist",
+    ["Hide Whisper Messenger's own icons"] = "Eigene Symbole von Whisper Messenger ausblenden",
+    ["Hunts in the Forever tracker column"] = "Jagden in der Forever-Tracker-Spalte",
+    ["Lock the free arrow"] = "Freien Pfeil sperren",
+    ["Lock the GearQuest arrow"] = "GearQuest-Pfeil sperren",
+    ["Metres"] = "Meter",
+    ["More skins"] = "Weitere Skins",
+    ["No location"] = "Kein Ort",
+    ["off"] = "aus",
+    ["One tracker for Shortest Path, SkillUp and GearQuest: the hunts become a section of the Forever tracker column and GearQuest's own tracker hides. The arrow is then free. Takes effect after /reload."] =
+        "Ein Tracker für Shortest Path, SkillUp und GearQuest: Die Jagden werden ein Abschnitt der Forever-Tracker-Spalte, der eigene Tracker von GearQuest verschwindet. Der Pfeil ist dann frei. Wirkt nach /reload.",
+    ["Only our chat button stays (with the number of unread whispers)."] =
+        "Nur unser Chat-Knopf bleibt (mit der Zahl ungelesener Flüsternachrichten).",
+    ["Own colour"] = "Eigene Farbe",
+    ["Pill"] = "Leiste",
+    ["Reload UI"] = "UI neu laden",
+    ["Remove the guide"] = "Führung entfernen",
+    ["Reset arrow position"] = "Position des Pfeils zurücksetzen",
+    ["Reset button position"] = "Position des Knopfs zurücksetzen",
+    ["Reset the options of the GearQuest, SkillUp, Whisper and Waypoint skins?"] =
+        "Die Optionen der Skins für GearQuest, SkillUp, Whisper und Waypoint zurücksetzen?",
+    ["Reset these skins"] = "Diese Skins zurücksetzen",
+    ["Ring"] = "Ring",
+    ["Settings reset. /reload applies every part."] =
+        "Einstellungen zurückgesetzt. /reload übernimmt alle Teile.",
+    ["Shift-drag: move"] = "Umschalt-Ziehen: verschieben",
+    ["Show distance"] = "Entfernung anzeigen",
+    ["Show GearQuest's portrait"] = "Porträt von GearQuest zeigen",
+    ["Show only on mouse-over"] = "Nur bei Mauskontakt zeigen",
+    ["Show the hunt's name"] = "Namen der Jagd anzeigen",
+    ["Size"] = "Größe",
+    ["SkillUp & Waypoint"] = "SkillUp & Waypoint",
+    ["SKILLUP FOREVER"] = "SKILLUP FOREVER",
+    ["SkillUp Forever: reagents tracker"] = "SkillUp Forever: Reagenzien-Tracker",
+    ["Skins"] = "Skins",
+    ["SKINS"] = "SKINS",
+    ["STATE"] = "ZUSTAND",
+    ["Style"] = "Stil",
+    ["Takes effect after /reload."] = "Wirkt nach /reload.",
+    ["Takes effect with the next waypoint."] = "Wirkt ab dem nächsten Wegpunkt.",
+    ["The arrow sits on its own frame instead of above GearQuest's tracker (always free with the tracker column)."] =
+        "Der Pfeil sitzt in einem eigenen Rahmen statt über dem Tracker von GearQuest (mit der Tracker-Spalte immer frei).",
+    ["The Forever tracker column is missing (Shortest Path Forever or SkillUp Forever): GearQuest keeps its own tracker."] =
+        "Die Forever-Tracker-Spalte fehlt (Shortest Path Forever oder SkillUp Forever): GearQuest behält seinen eigenen Tracker.",
+    ["The round picture in the top left corner of GearQuest's window. Takes effect after /reload."] =
+        "Das runde Bild oben links im Fenster von GearQuest. Wirkt nach /reload.",
+    ["Tint the icon as well"] = "Auch das Symbol einfärben",
+    ["Top left"] = "Oben links",
+    ["Top right"] = "Oben rechts",
+    ["TRACKER"] = "TRACKER",
+    ["Unlock the GearQuest arrow"] = "GearQuest-Pfeil entsperren",
+    ["Unlocked: drag the arrow with the left mouse button."] =
+        "Entsperrt: den Pfeil mit der linken Maustaste ziehen.",
+    ["Unread whispers: %d"] = "Ungelesene Flüsternachrichten: %d",
+    ["waiting"] = "wartet",
+    ["WAYPOINT UI"] = "WAYPOINT UI",
+    ["Waypoint UI's colours"] = "Farben von Waypoint UI",
+    ["Waypoint UI's colours show the quest state (complete, repeatable, important)."] =
+        "Die Farben von Waypoint UI zeigen den Queststand (abgeschlossen, wiederholbar, wichtig).",
+    ["Waypoint UI: colours"] = "Waypoint UI: Farben",
+    ["WHISPER MESSENGER"] = "WHISPER MESSENGER",
+    ["Whisper Messenger"] = "Whisper Messenger",
+    ["Whisper Messenger shows its new look after /reload."] =
+        "Whisper Messenger zeigt den neuen Look nach /reload.",
+    ["Whisper Messenger takes this change after /reload."] =
+        "Whisper Messenger übernimmt diese Änderung nach /reload.",
+    ["Whisper Messenger's dark jade preset, its flat frame and the EllesmereUI font. Takes effect after /reload."] =
+        "Das dunkle Jade-Design von Whisper Messenger, sein flacher Rahmen und die EllesmereUI-Schrift. Wirkt nach /reload.",
+    ["Whisper Messenger: chat button"] = "Whisper Messenger: Chat-Knopf",
+    ["Whisper Messenger: look"] = "Whisper Messenger: Look",
+    ["WINDOW"] = "FENSTER",
+    ["With EllesmereUI Chat the button sits in the chat sidebar below the last icon. With \"Free Move Icons\" on in EllesmereUI it moves with Shift-drag."] =
+        "Mit EllesmereUI Chat sitzt der Knopf in der Chat-Seitenleiste unter dem letzten Symbol. Ist in EllesmereUI \"Free Move Icons\" an, lässt er sich mit Umschalt-Ziehen verschieben.",
+    ["Without EllesmereUI Chat: the button shows while the mouse is over the chat or a whisper is unread."] =
+        "Ohne EllesmereUI Chat: Der Knopf erscheint, solange die Maus über dem Chat ist oder eine Flüsternachricht ungelesen ist.",
+    ["Yards"] = "Yards",
+}

@@ -1,0 +1,4 @@
+<Bindings>
+    <Binding name="BRXP_SWITCH_TARGET" header="BRXP" category="ADDONS">BeautifulRestedXP_SwitchTarget()</Binding>
+    <Binding name="BRXP_GUIDE_TARGET" category="ADDONS">BeautifulRestedXP_GuideTarget()</Binding>
+</Bindings>
