@@ -4,7 +4,7 @@
 ## Notes: RestedXP Guides in a modern flat look, with an arrow fed by ShortestPathForever. Loaded by its host addon.
 ## Notes-deDE: RestedXP Guides im modernen, flachen Look, mit einem Pfeil auf Basis von ShortestPathForever. Wird vom Haupt-Addon geladen.
 ## Author: HeartOfD2
-## Version: 0.2.0
+## Version: 0.2.1
 ## Category: Miscellaneous
 ## IconTexture: Interface\AddOns\BeautifulSkins\Media\Icon
 ## LoadOnDemand: 1

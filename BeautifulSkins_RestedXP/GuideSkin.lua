@@ -41,7 +41,7 @@ local S = {
     -- upcoming list, hiding, v2 and target boxes
     growUp = true, rowsDirty = true, listRows = 0, listHeight = 0, listShift = 0, listProgress = nil, heightBefore = nil, lastProgress = nil,
     hidden = false, alphaWas = nil, v2Pending = false, windowDeferred = false,
-    place = nil, sizing = false, -- window place before a drag of RXP's size grip (see SizeChanged)
+    sizing = false, keepTop = false, -- a drag of RXP's size grip is running / the height changes below a fixed top (see HoldPlace)
     boxHooks = { item = false, target = false }, boxQueued = false, boxes = 0, boxPoints = {},
 }
 local data = setmetatable({}, { __mode = "k" }) -- per-frame state of ours
@@ -1107,7 +1107,7 @@ end
 -- grows from the other side only: guide.growth "UP" (default) keeps the bottom-left corner and grows upwards, "DOWN"
 -- keeps the top-left corner and grows downwards. RXP saves any anchor (SaveFramePositions stores GetPoint).
 local function AnchorWindow(f, up)
-    if f:GetNumPoints() ~= 1 then return end
+    if S.sizing or f:GetNumPoints() ~= 1 or f:GetScript("OnUpdate") then return end -- see HoldPlace
     local point = up and "BOTTOMLEFT" or "TOPLEFT"
     if f:GetPoint(1) == point or WindowLocked(f) then return end
     local left, y = f:GetLeft(), up and f:GetBottom() or f:GetTop()
@@ -1118,53 +1118,35 @@ end
 
 local function SetHeightAnchored(f, height)
     if WindowLocked(f) then return end
-    AnchorWindow(f, S.growUp)
+    AnchorWindow(f, S.growUp and not S.keepTop)
     f:SetHeight(height)
 end
 
--- A resize drag moves the window. RXP sizes with StartSizing("BOTTOMRIGHT") (GuideWindow.lua): the top edge stays and
--- the bottom follows the cursor, and RXP keeps an OnUpdate running for as long as the drag lasts. Our height is
--- row-driven, so FitHeight puts the old height back the moment the drag ends -- but the window now hangs from the
--- dragged bottom edge, so the whole window had moved in the drag direction (down when dragged down, up when dragged
--- up). The place from before the drag is therefore remembered whenever RXP is not sizing, and put back afterwards.
--- The drag is recognised at the window itself (OnSizeChanged) rather than at a mouse handler: five frames can start
--- one (the grip, the window, the step frame, the guide name, the footer), and the grip calls RXP's handler directly
--- instead of through a script, so hooking the handlers would miss it.
-local function RememberPlace(f)
-    local left, bottom, top = f:GetLeft(), f:GetBottom(), f:GetTop()
-    if left and bottom and top and ns.CanAccess(left) and ns.CanAccess(bottom) and ns.CanAccess(top) then
-        S.place = { left = left, bottom = bottom, top = top }
-    end
-end
-
+-- A resize drag must not move the window. RXP sizes with StartSizing("BOTTOMRIGHT") (GuideWindow.lua) and keeps an
+-- OnUpdate running for as long as the drag lasts. For the drag the client takes over the anchor: StartSizing hangs the
+-- window from TOPLEFT of the screen, so the top edge stays, and StopMovingOrSizing leaves it on LEFT (measured in
+-- build 70790). The jump came right after the mouse-up, from the skin run that RXP's SetStep asks
+-- for: it pinned the dragged bottom edge and then put the height of the rows back, so the top edge moved by the size
+-- of the drag. So from the first size change until HoldPlace has seen the end of the drag (S.sizing), anchor and height
+-- are left alone (AnchorWindow, FitHeight); HoldPlace then puts the height of the rows back below the top edge, and
+-- only after that the bottom-left corner takes over again. The drag is recognised at the window itself (OnSizeChanged
+-- plus RXP's sizing OnUpdate), not at a mouse handler: five frames can start one, and the size grip calls RXP's handler
+-- directly instead of through a script.
 local function HoldPlace()
     local f = GetFrames()
     if f and f:GetScript("OnUpdate") then -- still dragging: ask again shortly
         C_Timer.After(SIZING_POLL, HoldPlace)
         return
     end
-    local place = S.place
     S.sizing = false
     if not (f and S.skinned) then return end
-    -- RXP calls SetStep on mouse-up while its sizing OnUpdate is still set, and FitHeight stays out of the way then:
-    -- nothing has put the height of the rows back by now. It is done here, after the window is where it belongs.
-    local function Refit() pcall(RefreshList) end
-    -- With guide.growth "DOWN" the top edge is the one that must stay, and RXP's sizing keeps it anyway.
-    if not (place and S.growUp) then Refit() return end
-    local left, top = f:GetLeft(), f:GetTop()
-    if not (left and top and ns.CanAccess(left) and ns.CanAccess(top)) then Refit() return end
-    -- Sizing by the bottom-right corner leaves the top where it was. A different top means the window was moved as
-    -- well (or the remembered place is from before such a move): then it belongs where it is now, not where it was.
-    if math.abs(top - place.top) > 0.5 then
-        Refit()
-        RememberPlace(f)
-        return
-    end
-    local function Hold()
-        f:ClearAllPoints()
-        f:SetPoint("BOTTOMLEFT", UIParent, "BOTTOMLEFT", left, place.bottom)
-        Refit() -- the height of the rows, grown from the bottom edge that is back in place
-        RememberPlace(f)
+    -- RXP calls SetStep on mouse-up while its sizing OnUpdate is still set and FitHeight stays out of the way then:
+    -- nothing has put the height of the rows back by now.
+    local function Done()
+        S.keepTop = true -- the height changes below the top edge, which stays where the drag left it
+        pcall(RefreshList)
+        S.keepTop = false
+        if S.growUp then AnchorWindow(f, true) end -- the same place, held by the bottom-left corner again
         -- RXP saved the dragged place in its own OnMouseUp: let it save the corrected one.
         local rxp = Rxp()
         local settings = type(rxp) == "table" and rxp.settings
@@ -1172,7 +1154,7 @@ local function HoldPlace()
             pcall(settings.SaveFramePositions, settings)
         end
     end
-    if IsLocked(f) then ns.Queue(Hold) else Hold() end -- see WindowLocked
+    if IsLocked(f) then ns.Queue(Done) else Done() end -- see WindowLocked
 end
 
 local function SizeChanged(f)
@@ -1182,12 +1164,12 @@ local function SizeChanged(f)
 end
 
 -- The window is as tall as its rows: a constant for a given `upcoming`, so it does not jump from step to step.
--- Not while the user drags the size grip (RXP runs its OnUpdate then; the mouse-up SetStep brings us back here) and not
--- for guides that collapse the window themselves (`hidewindow`).
+-- Not while the user drags the size grip (HoldPlace brings us back here afterwards) and not for guides that collapse
+-- the window themselves (`hidewindow`).
 local function FitHeight(f, c)
     local rxp = Rxp()
     local guide = rxp and rxp.currentGuide
-    if f:GetScript("OnUpdate") or (type(guide) == "table" and guide.hidewindow) then return end
+    if S.sizing or f:GetScript("OnUpdate") or (type(guide) == "table" and guide.hidewindow) then return end
     local target = math.max(MIN_HEIGHT, S.listHeight + LIST_PAD)
     if c.upcoming > 0 and not f.BottomFrame:IsShown() then f.BottomFrame:Show() end
     local height = f:GetHeight()
@@ -1204,7 +1186,6 @@ function RefreshList()
     if f and cur and S.skinned and not f:GetScript("OnUpdate") then
         pcall(SkinList, f, cur)
         pcall(FitHeight, f, cur)
-        RememberPlace(f) -- the place a resize drag has to give back
     end
 end
 
@@ -1896,7 +1877,6 @@ local function InstallHooks()
     Hook(rxp, "RenderFrame", "render")
     Hook(rxp, "SetStep", "step")
     f:HookScript("OnSizeChanged", SizeChanged)
-    RememberPlace(f)
     S.hooked = true
     return true
 end

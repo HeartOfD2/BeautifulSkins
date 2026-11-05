@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.1 (2026-11-05)
+
+- Fix: the RestedXP guide window no longer jumps when you let go of its size grip. The top edge stays where it is,
+  the width stays as dragged, and the height goes back to the height of the rows.
+
 ## 0.2.0 (2026-11-05)
 
 BeautifulSkins now also contains the former addons **BeautifulAttune** and **EUI RestedXP Skin**. Update by replacing the

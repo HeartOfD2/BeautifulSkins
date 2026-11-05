@@ -18,9 +18,15 @@ loaded and stays silent otherwise, so install only the addons you use.
 
 ![gearquest window](docs/screenshots/02-gearquest-window.png)
 
-![themes](docs/screenshots/03-themes.png)
+![attune window](docs/screenshots/03-attune-window.png)
 
-![theme editor](docs/screenshots/04-theme-editor.png)
+![restedxp guide window](docs/screenshots/04-restedxp-guide-window.jpg)
+
+![restedxp journey and compass](docs/screenshots/05-restedxp-journey-and-compass.jpg)
+
+![themes](docs/screenshots/06-themes.png)
+
+![theme editor](docs/screenshots/07-theme-editor.png)
 
 ## Skins
 
