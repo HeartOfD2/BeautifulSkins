@@ -546,15 +546,38 @@ modifiers:SetScript("OnEvent", function()
 end)
 
 -- ---------------------------------------------------------------------------------------------------------------
--- RXP's own arrow: hidden through RXP's own option "Hide waypoint arrow" (profile.disableArrow), the previous
--- value is remembered once and put back when the option is switched off or the settings are reset.
--- Our option is account-wide, disableArrow lives in RXP's settings profile (usually one per character), so the
--- remembered values are kept per RXP profile: rxpArrowBackup[profileKey].
+-- RXP's own arrow: made invisible, its frame stays shown. RXP's "Hide waypoint arrow" (profile.disableArrow) hides the
+-- frame, and in a #loop step UpdateGotoSteps reads a hidden frame as "the round is over": every tick it takes the reached
+-- waypoints back, so the target jumps between two of them and ShortestPathForever restarts its journey several times a
+-- second. So disableArrow stays off while our option is on. Our option is account-wide, disableArrow lives in RXP's
+-- settings profile (usually one per character), so rxpArrowBackup[profileKey] holds, per RXP profile, true when the user
+-- had switched it on themselves; it goes back when our option is switched off or the settings are reset. false is what
+-- up to 0.2.1 stood for "we switched it on": such a profile gets it switched off again.
 
 local RXPArrow = {}
 ns.RXPArrow = RXPArrow
 
 local rxpSynced = false
+local rxpInvisible = false
+local rxpMouseHooked = false
+
+-- Hides or shows the arrow's drawing and takes or gives back its mouse, without touching the frame's own Show state.
+local function SetRxpInvisible(rxp, on)
+    local frame = rxp and rxp.arrowFrame
+    if type(frame) ~= "table" or type(frame.EnableMouse) ~= "function" then return end
+    rxpInvisible = on
+    if on and not rxpMouseHooked then
+        rxpMouseHooked = true
+        -- ShortestPathForever hands the frame its mouse back when a journey ends; an invisible frame must not catch clicks
+        hooksecurefunc(frame, "EnableMouse", function(self, enable)
+            if rxpInvisible and enable then self:EnableMouse(false) end
+        end)
+    end
+    local alpha = on and 0 or 1
+    if type(frame.texture) == "table" then frame.texture:SetAlpha(alpha) end
+    if type(frame.text) == "table" then frame.text:SetAlpha(alpha) end
+    frame:EnableMouse(not on)
+end
 
 -- RXP's stored settings profiles (AceDB "RXPSettings"), or nothing.
 local function StoredProfiles()
@@ -588,40 +611,60 @@ local function Backups(profile, key)
     return backups
 end
 
--- Puts every remembered value back into its RXP profile and forgets them. A profile whose disableArrow is no longer
--- true was changed in RXP since then: that is the user's value and stays.
+-- Asks RXP to place its arrow again on its next tick: only that shows the frame after disableArrow went off.
+local function RefreshRxp(rxp)
+    if type(rxp.UpdateMap) == "function" then pcall(rxp.UpdateMap) end
+end
+
+-- Puts every remembered value back into its RXP profile and forgets them.
 local function ReleaseAll(profile, rxp)
     local active = profile and ProfileKey(profile, rxp)
     local backups = Backups(profile, active)
     local stored = StoredProfiles()
     for key, value in pairs(backups) do
         local target = key == active and profile or stored and stored[key]
-        if type(target) == "table" and target.disableArrow == true then target.disableArrow = value end
+        if type(target) == "table" then target.disableArrow = value end
         backups[key] = nil
     end
-    if profile and type(rxp.UpdateGotoSteps) == "function" then pcall(rxp.UpdateGotoSteps) end -- lets RXP show its arrow again
+    if profile then RefreshRxp(rxp) end
 end
 
--- Brings RXP's setting in line with nav.hideRxpArrow. Returns false while RXP's profile is not ready yet.
+-- Keeps disableArrow off for our hiding: ends our own marks of up to 0.2.1 in every profile and, in the active one, sets
+-- aside what the user switched on themselves. The user's value in another profile waits until that profile is active.
+local function FreeProfiles(profile, rxp, key, backups)
+    local stored = StoredProfiles()
+    local changed = false
+    for name, value in pairs(backups) do
+        if value == false then
+            local target = name == key and profile or stored and stored[name]
+            if type(target) == "table" and target.disableArrow == true then
+                target.disableArrow = false
+                changed = changed or target == profile
+            end
+            backups[name] = nil
+        end
+    end
+    if profile.disableArrow == true then
+        backups[key] = true
+        profile.disableArrow = false
+        changed = true
+    end
+    if changed then RefreshRxp(rxp) end
+end
+
+-- Brings RXP's arrow in line with nav.hideRxpArrow. Returns false while RXP's profile is not ready yet.
 function RXPArrow.Sync()
     local profile, rxp = ns.RxpProfile()
     if not (profile and ns.db) then return false end
     local key = ProfileKey(profile, rxp)
     local backups = Backups(profile, key)
-    if ns.db.nav.hideRxpArrow ~= false and backups[key] ~= nil and profile.disableArrow ~= true then
-        -- We had hidden RXP's arrow in this very profile and it has since been switched on again in RXP's own options
-        -- ("Hide waypoint arrow"): the user's latest choice wins, our option follows it instead of hiding the arrow
-        -- again, and the other profiles get their own values back.
-        ns.db.nav.hideRxpArrow = false
-        ReleaseAll(profile, rxp)
-    elseif ns.db.nav.hideRxpArrow ~= false then
-        if backups[key] == nil then backups[key] = profile.disableArrow == true end
-        profile.disableArrow = true
-        local frame = rxp.arrowFrame
-        if type(frame) == "table" and type(frame.Hide) == "function" then pcall(frame.Hide, frame) end -- RXP's frame is not protected
+    local hide = ns.db.nav.hideRxpArrow ~= false
+    if hide then
+        FreeProfiles(profile, rxp, key, backups)
     elseif next(backups) ~= nil then
         ReleaseAll(profile, rxp)
     end
+    SetRxpInvisible(rxp, hide)
     rxpSynced = true
     return true
 end
@@ -657,6 +700,8 @@ ns.OnLoaded(function()
         ns.db.navScaleMigrated = true
         if ns.db.nav.scale == 1 then ns.db.nav.scale = 0.70 end
     end
+    -- before RXP's first tick, so its arrow does not flash up until the login refresh
+    if ns.db.nav.hideRxpArrow ~= false then SetRxpInvisible(ns.Rxp(), true) end
     Layout() -- anchors, fonts and scale must exist before the first Show; RefreshAll refines them later
     C_Timer.NewTicker(IDLE, IdleTick)
 end)
@@ -692,7 +737,9 @@ function ns.NavDebug()
         kept[1] = "old " .. tostring(backups)
     end
     table.sort(kept)
-    ns.Say(("rxp arrow: hide wanted %s  RXP profile '%s'  disableArrow %s  backups {%s}  synced %s  arrived latch %s"):format(
-        tostring(ns.db and ns.db.nav.hideRxpArrow), tostring(key), tostring(profile and profile.disableArrow),
+    local rxpFrame = rxp and rxp.arrowFrame
+    ns.Say(("rxp arrow: hide wanted %s  invisible %s  frame shown %s  RXP profile '%s'  disableArrow %s  backups {%s}  synced %s  arrived latch %s"):format(
+        tostring(ns.db and ns.db.nav.hideRxpArrow), tostring(rxpInvisible), tostring(rxpFrame and rxpFrame:IsShown()),
+        tostring(key), tostring(profile and profile.disableArrow),
         table.concat(kept, ", "), tostring(rxpSynced), tostring(latch.arrived)))
 end

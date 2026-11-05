@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.2 (2026-11-05)
+
+- Fix: with ShortestPathForever following a RestedXP guide, the target no longer switches on and off several times a
+  second in a looping kill area. RestedXP's own arrow is now made invisible instead of being switched off through its
+  "Hide waypoint arrow" setting, which disturbed the guide's looping waypoints. The setting is cleaned up on the first
+  start.
+
 ## 0.2.1 (2026-11-05)
 
 - Fix: the RestedXP guide window no longer jumps when you let go of its size grip. The top edge stays where it is,

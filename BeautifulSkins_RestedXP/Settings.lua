@@ -293,7 +293,7 @@ local function ArrowRows()
         }),
         Row("nav", "hideRxpArrow", "toggle", "Hide RestedXP's own arrow", {
             rxpArrow = true,
-            tip = "Switches on RestedXP's \"Hide waypoint arrow\" setting for you, so only one arrow is shown. Off puts your previous RestedXP setting back.",
+            tip = "Makes RestedXP's arrow invisible, so only one arrow is shown. RestedXP keeps working behind it. Off shows it again and puts your previous RestedXP setting back.",
         }),
         Row("nav", "rememberJourney", "toggle", "Remember your own journey", {
             sync = "rememberJourney", enabled = spf,

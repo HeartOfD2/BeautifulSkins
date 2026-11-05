@@ -214,8 +214,8 @@ ns.locales.deDE = {
     ["Switch on \"Own window colour\" first."] = "Schalte zuerst „Eigene Fensterfarbe“ ein.",
     ["Switch target"] = "Ziel wechseln",
     ["Switch target (guide / your journey)"] = "Ziel wechseln (Guide / deine Reise)",
-    ["Switches on RestedXP's \"Hide waypoint arrow\" setting for you, so only one arrow is shown. Off puts your previous RestedXP setting back."] =
-        "Setzt für dich die RestedXP-Einstellung „Wegpunktpfeil ausblenden“, damit nur ein Pfeil sichtbar ist. Aus stellt deine vorherige RestedXP-Einstellung wieder her.",
+    ["Makes RestedXP's arrow invisible, so only one arrow is shown. RestedXP keeps working behind it. Off shows it again and puts your previous RestedXP setting back."] =
+        "Macht den Pfeil von RestedXP unsichtbar, damit nur ein Pfeil sichtbar ist. RestedXP arbeitet dahinter weiter. Aus zeigt ihn wieder und stellt deine vorherige RestedXP-Einstellung wieder her.",
     ["Switches on ShortestPathForever's \"Keep journeys after a reload\", so the target switch knows your last own journey (a quest, a map click, /way) and can go back to it. Off puts your previous setting back."] =
         "Setzt für dich die ShortestPathForever-Einstellung „Reisen nach /reload behalten“, damit der Zielwechsel deine letzte eigene Reise (Quest, Klick auf die Karte, /way) kennt und dorthin zurückkann. Aus stellt deine vorherige Einstellung wieder her.",
     ["Switches the whole guide window skin on or off. Off gives RestedXP's own look back."] =
