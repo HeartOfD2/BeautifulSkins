@@ -266,6 +266,7 @@ end
 local function ArrowRows()
     local nav = function() return ns.db.nav end
     local spf = function() return ns.SPF.Loaded() end
+    local arrowOn = function() return nav().showArrow ~= false end
     local scaleGet, scaleSet = Percent(0.70)
     return {
         PreviewRow(),
@@ -274,11 +275,6 @@ local function ArrowRows()
             values = { AUTO = L["Automatic"], SPF = "ShortestPathForever", RXP = "RestedXP" }, order = { "AUTO", "SPF", "RXP" },
             page = true, sync = "source",
             tip = "Where the arrow gets its route from. Without ShortestPathForever the arrow points in a straight line to the step target.",
-        }),
-        Row("nav", "replaceSpfArrow", "toggle", "Hide the ShortestPathForever arrow", {
-            sync = "replaceSpfArrow",
-            enabled = function() return spf() and nav().source == "RXP" end,
-            tip = "Only available with ShortestPathForever loaded and the source set to RestedXP. With ShortestPathForever guiding, its own arrow is not shown anyway.",
         }),
         Row("nav", "transports", "toggle", "Plan transport", {
             sync = "transports", enabled = spf,
@@ -302,33 +298,41 @@ local function ArrowRows()
         Note(NO_SPF, function() return not spf() end),
 
         Header("ARROW"),
+        Row("nav", "showArrow", "toggle", "Show the BeautifulRestedXP arrow", {
+            page = true, sync = "showArrow",
+            tip = "Off hides this arrow, for example when TomTom shows the way, and puts your ShortestPathForever setting back. While it is on, ShortestPathForever's own arrow stays invisible. RestedXP's own arrow stays hidden until you also switch off \"Hide RestedXP's own arrow\". GearQuest hunts then use GearQuest's own arrow.",
+        }),
         Row("nav", "style", "dropdown", "Arrow style", {
             values = { CHEVRON = L["Chevron"], RING = L["Ring"], PILL = L["Pill"], CLASSIC = L["Classic"] },
-            order = { "CHEVRON", "RING", "PILL", "CLASSIC" },
+            order = { "CHEVRON", "RING", "PILL", "CLASSIC" }, enabled = arrowOn,
         }),
-        Row("nav", "scale", "slider", "Size (%)", { min = 50, max = 200, step = 5, get = scaleGet, set = scaleSet }),
+        Row("nav", "scale", "slider", "Size (%)", {
+            min = 50, max = 200, step = 5, get = scaleGet, set = scaleSet, enabled = arrowOn,
+        }),
         Row("nav", "color", "dropdown", "Colour", {
             values = { ACCENT = L["Follow accent colour"], DIRECTION = L["By direction"], CUSTOM = L["Custom"] },
-            order = { "ACCENT", "DIRECTION", "CUSTOM" }, page = true,
+            order = { "ACCENT", "DIRECTION", "CUSTOM" }, page = true, enabled = arrowOn,
         }),
         ColorRow("Custom arrow colour",
             function() return ColorOf(nav().customColor, ns.FALLBACK_ACCENT) end,
             function(r, g, b) nav().customColor = { r = r, g = g, b = b } end,
-            { enabled = function() return nav().color == "CUSTOM" end, tip = "Set the colour to \"Custom\" first." }),
-        Row("nav", "alpha", "slider", "Opacity", { min = 0.2, max = 1, step = 0.05 }),
-        Row("nav", "showDistance", "toggle", "Show distance"),
-        Row("nav", "showETA", "toggle", "Show arrival time"),
-        Row("nav", "showName", "toggle", "Show target name"),
+            { enabled = function() return arrowOn() and nav().color == "CUSTOM" end, tip = "Set the colour to \"Custom\" first." }),
+        Row("nav", "alpha", "slider", "Opacity", { min = 0.2, max = 1, step = 0.05, enabled = arrowOn }),
+        Row("nav", "showDistance", "toggle", "Show distance", { enabled = arrowOn }),
+        Row("nav", "showETA", "toggle", "Show arrival time", { enabled = arrowOn }),
+        Row("nav", "showName", "toggle", "Show target name", { enabled = arrowOn }),
         Row("nav", "unit", "dropdown", "Unit", {
             values = { m = L["Metres"], yd = L["Yards"] }, order = { "m", "yd" }, sync = "unit",
         }),
-        Row("nav", "hideCombat", "toggle", "Hide in combat"),
+        Row("nav", "hideCombat", "toggle", "Hide in combat", { enabled = arrowOn }),
 
         Header("POSITION"),
         Row("nav", "locked", "toggle", "Lock position", {
+            enabled = arrowOn,
             tip = "Off: drag the arrow with the left mouse button; right-click centres it horizontally.",
         }),
         Row("nav", "centerLock", "toggle", "Keep arrow centred", {
+            enabled = arrowOn,
             tip = "Keeps the arrow on the vertical centre line of the screen. When unlocked, dragging only moves it up and down.",
         }),
         { type = "button", text = L["Reset arrow position"], onClick = function() ns.ResetArrowPosition() end },

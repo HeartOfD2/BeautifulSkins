@@ -397,6 +397,7 @@ local function Update()
     local nav = ns.db and ns.db.nav
     current.angle, current.mode = nil, nil
     if not nav then current.kind = "NONE"; return false end
+    if nav.showArrow == false then current.kind = "OFF"; return false end
     if nav.hideCombat and InCombatLockdown() then current.kind = "COMBAT"; return false end
     if ns.InInstance() then current.kind = "INSTANCE"; return false end
 

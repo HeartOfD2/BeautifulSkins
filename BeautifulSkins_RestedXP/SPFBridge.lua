@@ -8,6 +8,7 @@ local OWNER = "RestedXP" -- SPF's owner id for RXP guidance
 local METRES_PER_YARD = 0.9144 -- SPF/Distance.lua:9
 local ETA_INTERVAL = 1 -- seconds between SPF queries
 local BEND_RADIUS = 30 -- yards to the SPF waypoint for the transport state
+local SPF_ARROW_LOOK = 0.5 -- seconds between looks for the frame of SPF's own arrow
 local TRANSPORT_MODES = {
     flight = true, boat = true, zeppelin = true, lift = true, tram = true,
     portal = true, passage = true, teleport = true,
@@ -370,20 +371,61 @@ function SPF.RestoreAll()
     end)
 end
 
--- Source SPF/AUTO needs restedxp + journey on; arrow stays as the user had it. Source RXP gives those back and
--- hides SPF's arrow only when asked (arrow = false takes SPF its waypoints, so never with SPF guiding).
+-- SPF's own screen arrow. SPF places the bends our arrow follows only with "Show direction arrow" on, and with it off our
+-- arrow would point straight at the final target. So the setting stays on while our arrow is in use and SPF's arrow, which
+-- would be a second, yellow one, is made invisible instead. Its frame has no name: it is found among UIParent's children
+-- by its parts, once SPF created it. SPF only ever sets the alpha of the frame itself, never that of these parts.
+local SPF_ARROW_PARTS = { "Icon", "Arrow", "Distance", "Progress" }
+local spfArrow
+
+local function IsSpfArrow(frame)
+    local arrow = frame.Arrow
+    return type(arrow) == "table" and type(frame.MoverHint) == "table" and type(arrow.GetAtlas) == "function"
+        and arrow:GetAtlas() == "Navigation-Tracked-Arrow"
+end
+
+local function ApplySpfArrow()
+    if not spfArrow then return end
+    local alpha = ns.db and ns.db.nav.showArrow ~= false and 0 or 1
+    for _, key in ipairs(SPF_ARROW_PARTS) do
+        local part = spfArrow[key]
+        if type(part) == "table" and type(part.SetAlpha) == "function" then part:SetAlpha(alpha) end
+    end
+end
+
+-- With our arrow off the user's own value goes back, and SPF's arrow is theirs again.
+local function SyncArrow(nav)
+    if nav.showArrow ~= false then SPF.Set("arrow", true) else SPF.RestoreKey("arrow") end
+    ApplySpfArrow()
+end
+
+-- SPF creates the frame with its first journey: looks twice a second while one runs, and stops once it is found.
+ns.OnLoaded(function()
+    local ticker
+    ticker = C_Timer.NewTicker(SPF_ARROW_LOOK, function()
+        local api = SPF.Api()
+        if not api or not (Try(api.CurrentStop, OWNER) ~= nil or (type(api.Active) == "function" and Try(api.Active))) then return end
+        for _, child in ipairs({ UIParent:GetChildren() }) do
+            if Try(IsSpfArrow, child) then
+                spfArrow = child
+                ApplySpfArrow()
+                ticker:Cancel()
+                return
+            end
+        end
+    end)
+end)
+
+-- Source SPF/AUTO needs restedxp + journey on; source RXP gives those back.
 local function SyncSource(nav)
     if nav.source == "RXP" then
         SPF.RestoreKey("restedxp")
         SPF.RestoreKey("journey")
-        if nav.replaceSpfArrow then SPF.Set("arrow", false) else SPF.RestoreKey("arrow") end
     else
         SPF.Set("restedxp", true)
         SPF.Set("journey", true)
-        -- SPF's "Show direction arrow": with it off SPF places no bends for the player's own journeys (GearQuest
-        -- hunts, map clicks), so our arrow would have no direction there. SPF's own arrow stays out of the way.
-        SPF.Set("arrow", true)
     end
+    SyncArrow(nav)
 end
 
 local SYNC = {
@@ -392,13 +434,13 @@ local SYNC = {
     rememberJourney = function(nav)
         if nav.rememberJourney ~= false then SPF.Set("resumeJourney", true) else SPF.RestoreKey("resumeJourney") end
     end,
-    replaceSpfArrow = SyncSource,
+    showArrow = SyncArrow,
     transports = function(nav) SPF.Set("teleports", nav.transports == true) end, -- teleports only
     stepEndOnly = function(nav) SPF.Set("guideStops", nav.stepEndOnly == true) end,
     unit = function(nav) SPF.Set("metres", nav.unit == "m") end,
 }
 
--- Call after the user changed one of nav.source, replaceSpfArrow, transports, stepEndOnly, unit, rememberJourney
+-- Call after the user changed one of nav.source, showArrow, transports, stepEndOnly, unit, rememberJourney
 -- (no argument: all of them). Not called on load: SPF's values are only touched on a user change.
 function SPF.OnOptionChanged(name)
     local nav = ns.db and ns.db.nav
@@ -439,6 +481,9 @@ function ns.NavDebug()
     say(("source: configured %s  effective %s  actual %s"):format(S(configured), S(effective), S(t and t.source or "none")))
     say(("SPF: loaded %s  version %s  API %s  CurrentStop(%s) %s  waypoint tracked %s"):format(
         S(SPF.Loaded()), S(SPF.Version()), S(api ~= nil), OWNER, S(stop), S(tracking)))
+    say(("SPF arrow: setting %s  frame found %s  shown %s  alpha %s  arrow part alpha %s"):format(
+        S(SPF.Get("arrow")), S(spfArrow ~= nil), S(spfArrow and spfArrow:IsShown()),
+        Num(spfArrow and spfArrow:GetAlpha(), 2), Num(spfArrow and spfArrow.Arrow:GetAlpha(), 2)))
     local px, py, inst = ns.PlayerPos()
     say(("player: instance %s  x %s  y %s  facing %s"):format(S(inst), Num(px), Num(py), Num(ns.PlayerFacing(), 2)))
     if not t then

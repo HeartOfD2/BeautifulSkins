@@ -227,16 +227,22 @@ end
 -- GearQuest Forever: its "arrow on" for a hunt (GQ.Guide:ShowEntry) becomes the player's own SPF journey, so the one
 -- arrow shows the hunt (also across continents: boat, zeppelin ...) and the target switch toggles between the hunt
 -- and the guide. GearQuest itself only sets a Blizzard waypoint. While this works, GearQuest's own arrow stays off
--- (ns.GQArrowShared, read by the Extras pack).
+-- (ns.GQArrowShared, read by the Extras pack). With our arrow switched off nothing would show the hunt, so GearQuest
+-- keeps its own arrow and its waypoint then.
 local gqHooked = false
 local gqOwned = false -- the running own journey is a GearQuest hunt we started
 
+local function ArrowOn()
+    return ns.db ~= nil and ns.db.nav.showArrow ~= false
+end
+
 -- On the host, not on this pack's namespace: the Extras pack reads it through its own fall-through to the host.
 function ns.host.GQArrowShared()
-    return gqHooked and Api() ~= nil
+    return gqHooked and Api() ~= nil and ArrowOn()
 end
 
 local function GearQuestJourney(entry)
+    if not ArrowOn() then return end
     local api = Api()
     local gq = rawget(_G, "GearQuest")
     if not (api and type(entry) == "table" and type(gq) == "table" and type(gq.Map) == "table") then return end
@@ -303,6 +309,8 @@ ns.OnLoaded(function()
     HookGearQuest()
 end)
 
+local spfArrowChecked = false
+
 ns.RegisterRefresh(function()
     if not ns.db then return end
     -- once, after the option arrived: switch SPF's "Keep journeys after a reload" on (remembered, put back by Reset)
@@ -310,10 +318,10 @@ ns.RegisterRefresh(function()
         ns.db.rememberJourneySynced = true
         ns.SPF.OnOptionChanged("rememberJourney")
     end
-    -- once: SPF's "Show direction arrow" on (own journeys need it), the user's value is kept for Reset
-    if ns.loggedIn and not ns.db.spfArrowSynced and ns.SPF.Loaded() then
-        ns.db.spfArrowSynced = true
-        ns.SPF.OnOptionChanged("source")
+    -- once per session: SPF's "Show direction arrow" on for the bends of our arrow, also when it was switched off in SPF
+    if ns.loggedIn and not spfArrowChecked and ns.SPF.Loaded() then
+        spfArrowChecked = true
+        ns.SPF.OnOptionChanged("showArrow")
     end
     RefreshButtons()
     HookGearQuest() -- GearQuest may load after us

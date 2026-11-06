@@ -82,7 +82,6 @@ ns.locales.deDE = {
     ["Hide in combat"] = "Im Kampf ausblenden",
     ["Hide in instances"] = "In Instanzen ausblenden",
     ["Hide RestedXP's own arrow"] = "Eigenen Pfeil von RestedXP ausblenden",
-    ["Hide the ShortestPathForever arrow"] = "ShortestPathForever-Pfeil ausblenden",
     ["How many upcoming steps are listed. This also sets the window height; the mouse wheel scrolls through the whole guide."] =
         "Wie viele kommende Schritte aufgelistet werden. Das bestimmt auch die Fensterhöhe; das Mausrad scrollt durch den ganzen Guide.",
     ["How strongly the accent colour tints the window background."] =
@@ -115,6 +114,8 @@ ns.locales.deDE = {
     ["Next step"] = "Nächster Schritt",
     ["None"] = "Keiner",
     ["Off"] = "Aus",
+    ["Off hides this arrow, for example when TomTom shows the way, and puts your ShortestPathForever setting back. While it is on, ShortestPathForever's own arrow stays invisible. RestedXP's own arrow stays hidden until you also switch off \"Hide RestedXP's own arrow\". GearQuest hunts then use GearQuest's own arrow."] =
+        "Aus blendet diesen Pfeil aus, zum Beispiel wenn TomTom den Weg zeigt, und stellt deine Einstellung in ShortestPathForever wieder her. Solange er an ist, bleibt der eigene Pfeil von ShortestPathForever unsichtbar. Der eigene Pfeil von RestedXP bleibt verborgen, bis du auch „Eigenen Pfeil von RestedXP ausblenden“ ausschaltest. GearQuest-Jagden nutzen dann den eigenen Pfeil von GearQuest.",
     ["Off: drag the arrow with the left mouse button; right-click centres it horizontally."] =
         "Aus: Den Pfeil mit der linken Maustaste verschieben; Rechtsklick zentriert ihn waagerecht.",
     ["Off: progress bars use the accent colour."] = "Aus: Die Fortschrittsbalken nutzen die Akzentfarbe.",
@@ -123,8 +124,6 @@ ns.locales.deDE = {
     ["Off: the current step is white."] = "Aus: Der aktuelle Schritt ist weiß.",
     ["Off: the window colour comes from the accent tint. Examples: 161618 or 0F172A."] =
         "Aus: Die Fensterfarbe kommt aus der Akzent-Tönung. Beispiele: 161618 oder 0F172A.",
-    ["Only available with ShortestPathForever loaded and the source set to RestedXP. With ShortestPathForever guiding, its own arrow is not shown anyway."] =
-        "Nur verfügbar, wenn ShortestPathForever geladen und die Quelle RestedXP ist. Führt ShortestPathForever, ist sein eigener Pfeil ohnehin nicht sichtbar.",
     ["Opacity"] = "Deckkraft",
     ["Opacity of the panel behind the Journey. Its colour is the one of the EllesmereUI quest tracker, otherwise the window colour. 0 shows no panel."] =
         "Deckkraft der Fläche hinter der Reise. Die Farbe kommt von der EllesmereUI-Questverfolgung, sonst die Fensterfarbe. 0 zeigt keine Fläche.",
@@ -200,6 +199,7 @@ ns.locales.deDE = {
     ["Show portals"] = "Portale anzeigen",
     ["Show routes on the map"] = "Routen auf der Karte anzeigen",
     ["Show target name"] = "Zielname anzeigen",
+    ["Show the BeautifulRestedXP arrow"] = "BeautifulRestedXP-Pfeil anzeigen",
     ["Show the time left under the compass"] = "Restzeit unter dem Kompass zeigen",
     ["Size (%)"] = "Größe (%)",
     ["SIZES"] = "GRÖSSEN",

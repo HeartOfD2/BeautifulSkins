@@ -26,7 +26,8 @@ ns.DEFAULTS = {
         progressColor = false, -- false = accent; {r, g, b} = the user's own colour for the progress bars
     },
     nav = {
-        source = "SPF", replaceSpfArrow = true, transports = true, stepEndOnly = false, hideRxpArrow = true,
+        showArrow = true, -- off: our arrow stays hidden, e.g. when another addon such as TomTom shows the way
+        source = "SPF", transports = true, stepEndOnly = false, hideRxpArrow = true,
         nextMarker = false, -- the arrow aims at the tracked map marker (SPF's next bend), whatever the journey
         rememberJourney = true, -- SPF's "Keep journeys after a reload", which lets the target switch see your own journey
         style = "CHEVRON", scale = 0.70, color = "ACCENT", customColor = nil, alpha = 1.0,
@@ -130,6 +131,7 @@ function ns.ResetToDefaults()
     ns.db.spfSkin = DeepCopy(ns.DEFAULTS.spfSkin)
     ns.db.rxpArrowBackup = nil
     ns.db.rememberJourneySynced = nil -- the reset option is synced into SPF again
+    if ns.SPF then ns.SPF.OnOptionChanged("showArrow") end -- SPF's direction arrow follows the reset option
     ns.RefreshAll()
 end
 
