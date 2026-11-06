@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.4 (2026-11-06)
+
+- ShortestPathForever: the journey and its markers now follow the accent colour everywhere: the goal pin and ring on
+  the minimap, the route, stop buttons and numbers on the world map, the boat and zeppelin lines and the glow of a
+  hovered dock, the flight master's tracked mark, and the compass and screen pins. Changing the accent repaints all of
+  it at once. Transport and flight master icons keep their look.
+- The option is now called "Route and markers in the accent colour" (RestedXP options, Navigation > Map, section Map).
+
 ## 0.2.3 (2026-11-06)
 
 - Tested with Attune 16001-37.

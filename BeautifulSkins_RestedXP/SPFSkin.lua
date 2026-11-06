@@ -1,5 +1,5 @@
 -- ShortestPathForever skin: the Journey section of SPF's tracker column and SPF's compass in the EllesmereUI look, the
--- route on the minimap in the accent colour.
+-- routes and their markers on the minimap, the world map and the screen in the accent colour.
 -- Only SPF's own frames are touched, through post-hooks and restyling; no SPF function is replaced and no key is
 -- written onto SPF's frames (all state lives in weak tables here). Switching a part off gives SPF its own look back.
 local _, ns = ...
@@ -11,6 +11,7 @@ local TRACKER_NAME = "ShortestPathForeverObjectiveTracker" -- SPF's Journey modu
 local COLUMN_NAME = "ForeverTrackerCompanion" -- the shared Forever column that hosts the module
 local COMPASS_NAME = "ShortestPathForeverCompass" -- created by SPF the first time the compass is shown
 local MINIMAP_NAME = "ShortestPathForeverMinimapRoute" -- SPF's route on the minimap (UI/Route.lua)
+local SCREEN_PIN_NAME = "ShortestPathForeverDestinationPin" -- created by SPF the first time it is needed
 
 -- EllesmereUI quest tracker defaults, used when its own settings cannot be read.
 local QT_TITLE = { 1.0, 0.910, 0.471 }
@@ -33,11 +34,16 @@ local baseStyle = Weak()  -- FontString -> colour style SPF asked for (before Bl
 local origAtlas = Weak()  -- Texture -> atlas we blanked
 local hookedBlock = Weak()
 local own = Weak()        -- SPF frame -> our textures on it { bg, divider } / { top, bottom }
-local spfLine = Weak()    -- SPF's route line on the minimap -> { r, g, b, a } SPF last gave it
+local spfLine = Weak()    -- SPF's route line -> { r, g, b, a } SPF last gave it
+local lineOwners = Weak() -- frame that holds route lines -> how many of them are hooked
+local marks = Weak()      -- SPF's marker texture -> { r, g, b, desaturated, atlas, forced }
+local seenPin = Weak()    -- SPF's world map pin -> true once hooked
+local stopNumber = Weak() -- SPF's numbered stop pin -> { r, g, b } SPF gave its number
 
 local S = {
     trackerHooked = false, compassHooked = false, compassAlpha = nil, busy = false,
-    minimapHooked = false, lineCount = 0, tint = nil, tinting = false,
+    minimapHooked = false, tint = nil, tinting = false, watcher = nil, wait = 0, mapLayer = nil, pinCount = nil,
+    look = nil,
 }
 
 -- ---------------------------------------------------------------------------------------------------------------
@@ -550,7 +556,7 @@ local function StyleCompass(f)
     StyleFont(f.Time, 11, font)
     SetColor(f.Time, { r, g, b })
     StyleFont(f.MoverHint, 11, font)
-    -- The walking marks take the accent like our arrow; destination and transport pins keep the game's art.
+    -- The walking marks take the accent like our arrow; the destination pin is a marker (ApplyMarks).
     Tint(f.Bend, r, g, b)
     Tint(f.Next, r, g, b)
     StyleBackdrop(f)
@@ -594,13 +600,32 @@ local function ApplyCompass()
 end
 
 -- ---------------------------------------------------------------------------------------------------------------
--- Route on the minimap
+-- Route and markers in the accent colour
 --
--- SPF paints the route onto pooled lines, walks as dots and everything else as flat lines, and hands every line its
--- colour again on each redraw (ten times a second while moving). A hook on the line's SetVertexColor answers in the
+-- SPF paints routes onto pooled lines, walks as dots and everything else as flat lines, and hands every line its
+-- colour again on each redraw (ten times a second on the minimap). A hook on the line's SetVertexColor answers in the
 -- same call, so no redraw shows SPF's colour, and keeps that colour for switching off. The dark outlines stay.
--- The pool grows during a redraw. Each redraw ends in SPF's Pulse on the stroke layer's animation (Stop, or IsPlaying
--- while a route is planning): new lines are picked up there, before the frame is rendered.
+-- The pool grows during a redraw. On the minimap each redraw ends in SPF's Pulse on the stroke layer's animation (Stop,
+-- or IsPlaying while a route is planning), on the world map in the pin's Draw: new lines are picked up there, before the
+-- frame is rendered.
+--
+-- Markers are textures: the goal pin, ring and arrow marks, the lit stop button, their glows. A texture is tinted by
+-- the atlas it shows, so a marker that turns into a transport or flight master icon gets its own look back.
+--
+-- World map: SPF keeps its pins on frames of its own, because anything written into the map taints Forever's gamepad
+-- interface (SPF: UI/MapCanvas.lua). We only read the canvas's children to find SPF's pin layer, and hook SPF's pins,
+-- never the map. SPF hands out no signal for new pins, so a frame of ours counts the layer's children while the map is up.
+
+local MARK_ATLAS = {
+    ["Waypoint-MapPin-Tracked"] = true, -- goal pin
+    ["Navigation-Tracked-Icon"] = true, -- walking mark
+    ["adventureguide-ring"] = true, -- ring round a stop with a known mark on the minimap
+    ["UI-QuestPoi-QuestNumber-SuperTracked"] = true, -- the lit button of the stop being travelled to
+    ["UI-QuestPoi-InnerGlow"] = true,
+    ["UI-QuestPoi-OuterGlow"] = true,
+}
+local STOP_MARKS = { "Texture", "Button", "Glow" }
+local SCAN_EVERY = 0.25 -- seconds between looks for the pin layer and for SPF's screen pin
 
 local function MinimapRoute()
     local f = _G[MINIMAP_NAME]
@@ -614,21 +639,165 @@ local function OnLineColor(line, r, g, b, a)
     local tint = S.tint
     if tint then
         S.tinting = true
-        line:SetVertexColor(tint[1], tint[2], tint[3], a)
+        line:SetVertexColor(tint[1], tint[2], tint[3], a or 1)
         S.tinting = false
     end
 end
 
+-- A colour set from outside SPF's own paint. SPF sets the real alpha after the colour (it fades later hops), and setting
+-- a colour clears it, so it is put back. The colour's own alpha stays SPF's: never the one GetVertexColor reports, which
+-- includes SetAlpha.
+local function Recolour(line, r, g, b, a)
+    local alpha = line:GetAlpha()
+    line:SetVertexColor(r, g, b, a or 1)
+    line:SetAlpha(alpha)
+end
+
 -- A line seen for the first time still wears SPF's colour; setting it again runs it through the hook.
-local function WatchLines(f)
-    local lines = f.lines
-    for index = S.lineCount + 1, #lines do
+local function WatchLines(owner)
+    local lines = owner.lines
+    for index = (lineOwners[owner] or 0) + 1, #lines do
         local line = lines[index]
         spfLine[line] = {}
         hooksecurefunc(line, "SetVertexColor", OnLineColor)
-        line:SetVertexColor(line:GetVertexColor())
-        S.lineCount = index
+        local r, g, b = line:GetVertexColor()
+        Recolour(line, r, g, b)
+        lineOwners[owner] = index
     end
+end
+
+-- The pin with the boat and zeppelin routes hides them by alpha until their dock is hovered. SPF's own UpdateAlpha works
+-- out which lines show, so what it decided never depends on what we read back from a line.
+local function SettleAlpha(owner)
+    if type(owner.UpdateAlpha) == "function" then owner:UpdateAlpha() end
+end
+
+local function OnPinDrawn(pin)
+    WatchLines(pin)
+    SettleAlpha(pin)
+end
+
+-- The route on screen may not redraw for a while: SPF's own colour again, which the hook turns into the tint.
+local function RepaintLines(owner)
+    WatchLines(owner)
+    for index = 1, lineOwners[owner] or 0 do
+        local line = owner.lines[index]
+        local c = spfLine[line]
+        Recolour(line, c[1], c[2], c[3], c[4])
+    end
+    SettleAlpha(owner)
+end
+
+local function PaintMark(tex)
+    local m = marks[tex]
+    local tint = S.tint
+    if tint and (m.forced or MARK_ATLAS[m.atlas]) then
+        tex:SetDesaturated(true)
+        tex:SetVertexColor(tint[1], tint[2], tint[3])
+    else
+        tex:SetDesaturated(m.desaturated)
+        tex:SetVertexColor(m.r, m.g, m.b)
+    end
+end
+
+-- SPF sets a marker's colour once, at most, so what the texture wears at first sight is SPF's.
+local function Mark(tex)
+    if type(tex) ~= "table" or marks[tex] then return end
+    local r, g, b = tex:GetVertexColor()
+    marks[tex] = { r = r or 1, g = g or 1, b = b or 1, desaturated = tex:IsDesaturated() and true or false,
+        atlas = tex:GetAtlas() }
+    hooksecurefunc(tex, "SetAtlas", function(self, atlas)
+        marks[self].atlas = atlas
+        PaintMark(self)
+    end)
+    hooksecurefunc(tex, "SetTexture", function(self)
+        marks[self].atlas = nil
+        PaintMark(self)
+    end)
+    PaintMark(tex)
+end
+
+-- The numbers of the stops still ahead are yellow on a dark button: they take the tint, the dark ones on the lit
+-- button of the current stop stay.
+local function PaintStop(pin)
+    local later = not pin.current
+    marks[pin.Numeral].forced = later
+    PaintMark(pin.Numeral)
+    local c, tint = stopNumber[pin], S.tint
+    if tint and later then
+        pin.Number:SetTextColor(tint[1], tint[2], tint[3])
+    else
+        pin.Number:SetTextColor(c[1], c[2], c[3])
+    end
+end
+
+local function OnStopAcquired(pin)
+    stopNumber[pin] = { pin.Number:GetTextColor() }
+    PaintStop(pin)
+end
+
+local function WatchPin(pin)
+    if seenPin[pin] then return end
+    seenPin[pin] = true
+    if type(pin.lines) == "table" and type(pin.underlines) == "table" and type(pin.Draw) == "function" then
+        hooksecurefunc(pin, "Draw", OnPinDrawn)
+        OnPinDrawn(pin)
+        return
+    end
+    -- The journey's stops, the flight master's tracked marks and the glow of a hovered dock; the icons stay SPF's.
+    if type(pin.Numeral) == "table" and type(pin.Number) == "table" and type(pin.OnAcquired) == "function" then
+        for _, key in ipairs(STOP_MARKS) do Mark(pin[key]) end
+        Mark(pin.Numeral)
+        hooksecurefunc(pin, "OnAcquired", OnStopAcquired)
+        OnStopAcquired(pin)
+    elseif type(pin.SuperTrackMarker) == "table" then
+        Mark(pin.SuperTrackMarker)
+        Mark(pin.SuperTrackGlow)
+    else
+        Mark(pin.Glow)
+    end
+end
+
+-- SPF's pin layer: canvas > SPF's frame > layer > pins, each pin naming its view, and the view its layer.
+local function FindLayer()
+    local map = _G.WorldMapFrame
+    if type(map) ~= "table" or type(map.GetCanvas) ~= "function" then return nil end
+    local canvas = map:GetCanvas()
+    if type(canvas) ~= "table" then return nil end
+    for _, host in ipairs({ canvas:GetChildren() }) do
+        for _, layer in ipairs({ host:GetChildren() }) do
+            for _, pin in ipairs({ layer:GetChildren() }) do
+                local view = pin.view
+                if type(view) == "table" and view.layer == layer then return layer end
+            end
+        end
+    end
+end
+
+local function ScanMap()
+    S.mapLayer = S.mapLayer or FindLayer()
+    local layer = S.mapLayer
+    if not layer then return end
+    local count = select("#", layer:GetChildren())
+    if count == S.pinCount then return end
+    S.pinCount = count
+    for _, pin in ipairs({ layer:GetChildren() }) do WatchPin(pin) end
+end
+
+local function MarkScreenPin()
+    local f = _G[SCREEN_PIN_NAME]
+    if type(f) == "table" then Mark(f.Pin) end
+end
+
+local function OnWatch(_, elapsed)
+    S.wait = S.wait - elapsed
+    local map = _G.WorldMapFrame
+    local shown = type(map) == "table" and map:IsVisible()
+    if shown and S.mapLayer then ScanMap() end
+    if S.wait > 0 then return end
+    S.wait = SCAN_EVERY
+    if shown then ScanMap() end
+    MarkScreenPin()
 end
 
 local function HookMinimap(f)
@@ -642,17 +811,41 @@ local function HookMinimap(f)
     hooksecurefunc(animation, "IsPlaying", Redrawn)
 end
 
-local function ApplyMinimap()
+local function ApplyMarks()
     local f = MinimapRoute()
     if not f then return false end
-    S.tint = MinimapRouteOn() and { ns.Accent() } or nil
+    local tint = MinimapRouteOn() and { ns.Accent() } or nil
+    S.tint = tint
     HookMinimap(f)
+    Mark(f.Goal)
     WatchLines(f)
-    -- The route on screen may not redraw for a while: SPF's own colour again, which the hook turns into the tint.
-    for index = 1, S.lineCount do
-        local line = f.lines[index]
-        local c = spfLine[line]
-        line:SetVertexColor(c[1], c[2], c[3], c[4])
+    ScanMap()
+    MarkScreenPin()
+    local compass = CompassFrame()
+    if compass then
+        Mark(compass.Goal)
+        Mark(compass.Stop)
+        if not CompassOn() then -- the compass skin paints these itself
+            if tint then
+                Tint(compass.Bend, tint[1], tint[2], tint[3])
+                Tint(compass.Next, tint[1], tint[2], tint[3])
+            else
+                Tint(compass.Bend)
+                Tint(compass.Next)
+            end
+        end
+    end
+    -- Apply also runs once a second while SPF's compass was never shown: only a new tint needs a repaint.
+    local look = tint and ("%.3f %.3f %.3f"):format(tint[1], tint[2], tint[3]) or "off"
+    if look ~= S.look then
+        S.look = look
+        for owner in pairs(lineOwners) do RepaintLines(owner) end
+        for tex in pairs(marks) do PaintMark(tex) end
+        for pin in pairs(stopNumber) do PaintStop(pin) end
+    end
+    if not S.watcher then
+        S.watcher = CreateFrame("Frame")
+        S.watcher:SetScript("OnUpdate", OnWatch)
     end
     return true
 end
@@ -669,9 +862,9 @@ local function Apply()
     if not okJ then geterrorhandler()(foundJourney) end
     local okC, foundCompass = pcall(ApplyCompass)
     if not okC then geterrorhandler()(foundCompass) end
-    local okM, foundMinimap = pcall(ApplyMinimap)
-    if not okM then geterrorhandler()(foundMinimap) end
-    if foundJourney and foundCompass and foundMinimap and ticker then
+    local okM, foundMarks = pcall(ApplyMarks)
+    if not okM then geterrorhandler()(foundMarks) end
+    if foundJourney and foundCompass and foundMarks and ticker then
         ticker:Cancel()
         ticker = nil
     end
@@ -682,7 +875,7 @@ local function StartWatching()
     ticker = C_Timer.NewTicker(1, Apply)
 end
 
-ns.SPFSkin = { Apply = Apply }
+ns.SPFSkin = { Apply = Apply, ScanMap = ScanMap }
 
 ns.OnLoaded(function()
     Apply()
@@ -703,7 +896,8 @@ function ns.SPFSkinDebug()
     ns.Say(string.format(L["Compass: frame %s, hooked %s, skin %s (option %s)"],
         tostring(compass ~= nil), tostring(S.compassHooked), tostring(compassStyled), tostring(c.compass)))
     ns.Say(string.format(L["Minimap route: frame %s, hooked %s, lines %s, skin %s (option %s)"],
-        tostring(MinimapRoute() ~= nil), tostring(S.minimapHooked), tostring(S.lineCount), tostring(S.tint ~= nil),
+        tostring(MinimapRoute() ~= nil), tostring(S.minimapHooked), tostring(lineOwners[MinimapRoute() or S] or 0),
+        tostring(S.tint ~= nil),
         tostring(c.minimapRoute)))
     ns.Say(string.format(L["EllesmereUI skinning available: %s, quest tracker settings found: %s"],
         tostring(SkinAllowed()), tostring(TrackerDb() ~= nil)))

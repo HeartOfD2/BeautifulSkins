@@ -166,7 +166,7 @@ ns.locales.deDE = {
     ["Right-click to pick a guide"] = "Rechtsklick, um einen Guide zu wählen",
     ["Right-click: BeautifulRestedXP options"] = "Rechtsklick: BeautifulRestedXP-Optionen",
     ["Ring"] = "Ring",
-    ["Route in the accent colour"] = "Route in der Akzentfarbe",
+    ["Route and markers in the accent colour"] = "Route und Marken in der Akzentfarbe",
     ["ROUTE SOURCE"] = "ROUTENQUELLE",
     ["Sample harbour"] = "Beispielhafen",
     ["Sample target"] = "Beispielziel",
@@ -230,8 +230,8 @@ ns.locales.deDE = {
     ["The lowest position (230) keeps the width RestedXP uses. Higher values set the width in pixels (240 to 480)."] =
         "Die unterste Stellung (230) behält die Breite von RestedXP. Höhere Werte setzen die Breite in Pixeln (240 bis 480).",
     ["The target changes after combat."] = "Das Ziel wechselt nach dem Kampf.",
-    ["The walking dots and the lines of flights, boats and lifts on the minimap take the accent colour instead of one colour per way of travel. Off gives ShortestPathForever's own colours back."] =
-        "Die Laufpunkte und die Linien von Flügen, Schiffen und Aufzügen auf der Minikarte nehmen die Akzentfarbe an, statt je Reiseart eine eigene Farbe zu haben. Aus: ShortestPathForever bekommt seine eigenen Farben zurück.",
+    ["The route, its stops and its waypoint marks take the accent colour on the minimap, the world map, the compass and the screen, instead of one colour per way of travel, and so do the boat and zeppelin lines of a hovered dock. Transport and flight master icons keep their look. Off gives ShortestPathForever's own colours back."] =
+        "Die Route, ihre Stopps und ihre Wegpunkt-Marken nehmen auf der Minikarte, der Weltkarte, dem Kompass und dem Bildschirm die Akzentfarbe an, statt je Reiseart eine eigene Farbe zu haben, ebenso die Schiffs- und Zeppelinlinien eines Docks unter der Maus. Die Symbole für Transportmittel und Flugmeister bleiben, wie sie sind. Aus: ShortestPathForever bekommt seine eigenen Farben zurück.",
     ["Thin (1 px)"] = "Dünn (1 px)",
     ["Ticks, letters and the centre mark in the skin look: accent colour for north, the centre and the walking marks, the skin font, the window colour behind the band. Off gives ShortestPathForever's own look back."] =
         "Striche, Buchstaben und Mittelmarke im Skin-Look: Akzentfarbe für Norden, die Mitte und die Wegmarken, die Skin-Schrift, die Fensterfarbe hinter dem Band. Aus stellt das Aussehen von ShortestPathForever wieder her.",

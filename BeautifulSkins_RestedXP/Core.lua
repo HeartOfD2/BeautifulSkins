@@ -38,7 +38,7 @@ ns.DEFAULTS = {
         journeyBackground = 75, -- opacity (%) of the panel behind the Journey; 0 = none
         currentAccent = true, -- the current journey step in the accent colour (off: white)
         compass = true, -- ShortestPathForever's compass in the EllesmereUI look
-        minimapRoute = true, -- ShortestPathForever's dots and lines on the minimap in the accent colour
+        minimapRoute = true, -- ShortestPathForever's routes and markers everywhere in the accent colour
     },
 }
 
