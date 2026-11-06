@@ -193,7 +193,8 @@ end
 -- window (), view (noToggle), portrait (), select (attuneId, quiet), node (step, parent, posX, posY),
 -- sideFeeder (endStep, sideSteps, colX, boxW, endX, endY), zoom (zoom), zoomSlider (), pan (), iconView (enabled),
 -- reloadTree (), questDetail (step), questDetailHide (), questRewards (step), resultList (title),
--- resultRows () (after the list and after every row Attune adds a moment later).
+-- resultRows () (after the list and after every row Attune adds a moment later), skipCheck (),
+-- skipCheckUpdate (attuneId), statLabels ().
 local HOOK_POINTS = {
     window = { cap = "Frame", name = "Attune_Frame" },
     view = { cap = "ToggleView", name = "Attune_ToggleView" },
@@ -213,6 +214,9 @@ local HOOK_POINTS = {
     resultRows = { cap = "Results", name = "Attune_UpdateResultScroll" },
     nextLayout = { cap = "NextWindow", name = "Attune_NextFrameLayout" },
     nextUpdate = { cap = "NextWindow", name = "Attune_NextFrameUpdate" },
+    skipCheck = { cap = "SkipCheck", name = "Attune_CreateSkipCheck" },
+    skipCheckUpdate = { cap = "SkipCheck", name = "Attune_UpdateSkipCheck" },
+    statLabels = { cap = "StatLabels", name = "Attune_RefreshOpenStatLabels" },
 }
 
 -- Capability behind a hook point (for a module's requires list).
@@ -258,6 +262,11 @@ function A.CharKey()
             charKey = key
             return key
         end
+    end
+    -- Attune uses the bare first name when the second value is empty.
+    if (second == nil or second == "") and toons[first] then
+        charKey = first
+        return first
     end
     -- Fallback: exactly one saved character whose key starts with our name.
     local prefix, found = first .. " ", nil
@@ -351,11 +360,11 @@ end
 local TYPE_KEYS = {
     ["Quest"] = "quest", ["Pick Up"] = "pickup", ["Turn In"] = "turnin", ["Item"] = "item", ["Kill"] = "kill",
     ["Interact"] = "interact", ["Click"] = "click", ["Level"] = "level", ["Rep"] = "rep", ["Attune"] = "attune",
-    ["End"] = "end", ["Spacer"] = "spacer",
+    ["End"] = "end", ["Spacer"] = "spacer", ["Stat"] = "stat", ["Prof"] = "stat",
 }
 
 -- Stable lower-case type of a step: quest, pickup, turnin, item, kill, interact, click, level, rep, attune, end,
--- spacer or other.
+-- spacer, stat (a statistic or profession goal of a character trial) or other.
 function A.TypeKey(step)
     return type(step) == "table" and TYPE_KEYS[step.TYPE] or "other"
 end
@@ -376,7 +385,9 @@ function A.StepName(step)
     if type(step) ~= "table" then return nil end
     local key = A.TypeKey(step)
     local name
-    if key == "item" then
+    if key == "stat" then
+        return step.STEP
+    elseif key == "item" then
         name = LangById("I_", step.ID_WOWHEAD)
     elseif key == "kill" or key == "interact" then
         name = LangById("N1_", step.ID_WOWHEAD)
@@ -405,6 +416,7 @@ function A.TypeName(step)
     if key == "level" then return Lang("Required level") or step.TYPE end
     if key == "attune" then return Lang("Attunement or key") or step.TYPE end
     if key == "rep" then return Lang("Reputation") or step.TYPE end
+    if key == "stat" then return step.STEP or step.TYPE end -- the card's title is the count, its name stands here
     return Lang(step.TYPE) or step.TYPE
 end
 
@@ -640,6 +652,19 @@ function A.ZoomSlider()
         if type(widget) == "table" and widget.type == "Slider" and child:IsShown() then return widget end
     end
     return nil
+end
+
+-- Attune's "Will not do" checkbox on the chain: one unnamed button, kept in a global and reused.
+function A.SkipCheck()
+    local frame = _G.AttuneSkipCheck
+    return IsFrame(frame) and frame or nil
+end
+
+-- Is the box ticked, and its label (Attune's own word).
+function A.SkipCheckState(frame)
+    local text = frame.text
+    local label = type(text) == "table" and type(text.GetText) == "function" and text:GetText() or nil
+    return frame.checked and true or false, label or Lang("WillNotDo") or ""
 end
 
 function A.QuestDetail()
@@ -1037,7 +1062,8 @@ function A.WorkInProgress()
     local frame = scroll and scroll.frame
     if not IsFrame(frame) then return nil end
     for _, child in ipairs({ frame:GetChildren() }) do
-        local text = child.obj == nil and child.text or nil
+        -- the "Will not do" checkbox is an anonymous frame with a .text as well
+        local text = child.obj == nil and child ~= _G.AttuneSkipCheck and child.text or nil
         if type(text) == "table" and type(text.GetObjectType) == "function" and text:GetObjectType() == "FontString" then
             return child
         end
@@ -1204,7 +1230,7 @@ end
 
 -- What a shown list button stands for, as plain data:
 --   section: { section = true, level, text, expanded, done, total }          (expansion and group rows)
---   leaf:    { level, text, levels, icon, done, dim, progress, selected }    (one attunement)
+--   leaf:    { level, text, levels, icon, done, dim, skipped, progress, selected }    (one attunement)
 -- Colour codes of Attune's texts are removed (the skin colours by theme). nil when the button holds no row.
 function A.RowInfo(button)
     local line = type(button) == "table" and button.treeline or nil
@@ -1246,6 +1272,7 @@ function A.RowInfo(button)
     info.icon = node and node.sourceIcon or line.icon
     info.done = node and node.done and true or false
     info.dim = node and node.dim and true or false
+    info.skipped = node and node.skipped and not node.done and true or false -- Attune greys only unfinished ones
     if A.TracksProgress(line.value) then info.progress = A.Progress(line.value) end
     return info
 end

@@ -4,7 +4,7 @@
 ## Notes: A modern, searchable look for the Attune addon. Loaded by its host addon.
 ## Notes-deDE: Ein modernes, durchsuchbares Aussehen für das Addon Attune. Wird vom Haupt-Addon geladen.
 ## Author: HeartOfD2
-## Version: 0.2.2
+## Version: 0.2.3
 ## Category: Quests
 ## IconTexture: Interface\AddOns\BeautifulSkins\Media\Icon
 ## LoadOnDemand: 1
@@ -24,6 +24,7 @@ Skin\NextWindow.lua
 Skin\Tree.lua
 Skin\Graph.lua
 Skin\Zoom.lua
+Skin\SkipCheck.lua
 Skin\Detail.lua
 Skin\Results.lua
 Search\Index.lua

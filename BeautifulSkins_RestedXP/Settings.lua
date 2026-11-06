@@ -390,6 +390,10 @@ local function MapRows()
         Header("MINIMAP"),
         SpfRow("minimapPins", "toggle", "Show minimap pins"),
         SpfRow("minimapPinScale", "slider", "Minimap pin size (%)", { min = 25, max = 200, step = 5 }),
+        Row("spfSkin", "minimapRoute", "toggle", "Route in the accent colour", {
+            enabled = spf,
+            tip = "The walking dots and the lines of flights, boats and lifts on the minimap take the accent colour instead of one colour per way of travel. Off gives ShortestPathForever's own colours back.",
+        }),
     }
 end
 

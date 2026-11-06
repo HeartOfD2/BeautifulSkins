@@ -1,4 +1,5 @@
--- ShortestPathForever skin: the Journey section of SPF's tracker column and SPF's compass in the EllesmereUI look.
+-- ShortestPathForever skin: the Journey section of SPF's tracker column and SPF's compass in the EllesmereUI look, the
+-- route on the minimap in the accent colour.
 -- Only SPF's own frames are touched, through post-hooks and restyling; no SPF function is replaced and no key is
 -- written onto SPF's frames (all state lives in weak tables here). Switching a part off gives SPF its own look back.
 local _, ns = ...
@@ -9,6 +10,7 @@ local Mix, Try = ns.Mix, ns.Try
 local TRACKER_NAME = "ShortestPathForeverObjectiveTracker" -- SPF's Journey module (ObjectiveTrackerModuleTemplate)
 local COLUMN_NAME = "ForeverTrackerCompanion" -- the shared Forever column that hosts the module
 local COMPASS_NAME = "ShortestPathForeverCompass" -- created by SPF the first time the compass is shown
+local MINIMAP_NAME = "ShortestPathForeverMinimapRoute" -- SPF's route on the minimap (UI/Route.lua)
 
 -- EllesmereUI quest tracker defaults, used when its own settings cannot be read.
 local QT_TITLE = { 1.0, 0.910, 0.471 }
@@ -31,8 +33,12 @@ local baseStyle = Weak()  -- FontString -> colour style SPF asked for (before Bl
 local origAtlas = Weak()  -- Texture -> atlas we blanked
 local hookedBlock = Weak()
 local own = Weak()        -- SPF frame -> our textures on it { bg, divider } / { top, bottom }
+local spfLine = Weak()    -- SPF's route line on the minimap -> { r, g, b, a } SPF last gave it
 
-local S = { trackerHooked = false, compassHooked = false, compassAlpha = nil, busy = false }
+local S = {
+    trackerHooked = false, compassHooked = false, compassAlpha = nil, busy = false,
+    minimapHooked = false, lineCount = 0, tint = nil, tinting = false,
+}
 
 -- ---------------------------------------------------------------------------------------------------------------
 -- Settings and look sources
@@ -53,6 +59,11 @@ end
 local function CompassOn()
     local c = Cfg()
     return c ~= nil and c.compass == true and SkinAllowed()
+end
+
+local function MinimapRouteOn()
+    local c = Cfg()
+    return c ~= nil and c.minimapRoute == true and SkinAllowed()
 end
 
 -- EllesmereUIQuestTracker's settings (read only), so the Journey matches the quest list under it.
@@ -583,8 +594,72 @@ local function ApplyCompass()
 end
 
 -- ---------------------------------------------------------------------------------------------------------------
--- Wiring: SPF builds the module at its init and the compass the first time it shows, so look once a second
--- until both exist (and only while SPF is loaded).
+-- Route on the minimap
+--
+-- SPF paints the route onto pooled lines, walks as dots and everything else as flat lines, and hands every line its
+-- colour again on each redraw (ten times a second while moving). A hook on the line's SetVertexColor answers in the
+-- same call, so no redraw shows SPF's colour, and keeps that colour for switching off. The dark outlines stay.
+-- The pool grows during a redraw. Each redraw ends in SPF's Pulse on the stroke layer's animation (Stop, or IsPlaying
+-- while a route is planning): new lines are picked up there, before the frame is rendered.
+
+local function MinimapRoute()
+    local f = _G[MINIMAP_NAME]
+    if type(f) == "table" and type(f.lines) == "table" then return f end
+end
+
+local function OnLineColor(line, r, g, b, a)
+    if S.tinting then return end
+    local c = spfLine[line]
+    c[1], c[2], c[3], c[4] = r, g, b, a
+    local tint = S.tint
+    if tint then
+        S.tinting = true
+        line:SetVertexColor(tint[1], tint[2], tint[3], a)
+        S.tinting = false
+    end
+end
+
+-- A line seen for the first time still wears SPF's colour; setting it again runs it through the hook.
+local function WatchLines(f)
+    local lines = f.lines
+    for index = S.lineCount + 1, #lines do
+        local line = lines[index]
+        spfLine[line] = {}
+        hooksecurefunc(line, "SetVertexColor", OnLineColor)
+        line:SetVertexColor(line:GetVertexColor())
+        S.lineCount = index
+    end
+end
+
+local function HookMinimap(f)
+    if S.minimapHooked then return end
+    local layer = f.strokeLayer
+    local animation = type(layer) == "table" and layer.animation
+    if type(animation) ~= "table" then return end
+    S.minimapHooked = true
+    local function Redrawn() WatchLines(f) end
+    hooksecurefunc(animation, "Stop", Redrawn)
+    hooksecurefunc(animation, "IsPlaying", Redrawn)
+end
+
+local function ApplyMinimap()
+    local f = MinimapRoute()
+    if not f then return false end
+    S.tint = MinimapRouteOn() and { ns.Accent() } or nil
+    HookMinimap(f)
+    WatchLines(f)
+    -- The route on screen may not redraw for a while: SPF's own colour again, which the hook turns into the tint.
+    for index = 1, S.lineCount do
+        local line = f.lines[index]
+        local c = spfLine[line]
+        line:SetVertexColor(c[1], c[2], c[3], c[4])
+    end
+    return true
+end
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- Wiring: SPF builds the module and the minimap route at its init and the compass the first time it shows, so look
+-- once a second until all three exist (and only while SPF is loaded).
 
 local ticker
 
@@ -594,22 +669,17 @@ local function Apply()
     if not okJ then geterrorhandler()(foundJourney) end
     local okC, foundCompass = pcall(ApplyCompass)
     if not okC then geterrorhandler()(foundCompass) end
-    if foundJourney and foundCompass and ticker then
+    local okM, foundMinimap = pcall(ApplyMinimap)
+    if not okM then geterrorhandler()(foundMinimap) end
+    if foundJourney and foundCompass and foundMinimap and ticker then
         ticker:Cancel()
         ticker = nil
     end
-    return foundJourney, foundCompass
 end
 
 local function StartWatching()
     if ticker or not (ns.SPF and ns.SPF.Loaded()) then return end
-    ticker = C_Timer.NewTicker(1, function()
-        local journeyFound, compassFound = Apply()
-        if journeyFound and compassFound and ticker then
-            ticker:Cancel()
-            ticker = nil
-        end
-    end)
+    ticker = C_Timer.NewTicker(1, Apply)
 end
 
 ns.SPFSkin = { Apply = Apply }
@@ -632,6 +702,9 @@ function ns.SPFSkinDebug()
         tostring(type(module) == "table"), tostring(S.trackerHooked), tostring(journeyStyled), tostring(c.journey)))
     ns.Say(string.format(L["Compass: frame %s, hooked %s, skin %s (option %s)"],
         tostring(compass ~= nil), tostring(S.compassHooked), tostring(compassStyled), tostring(c.compass)))
+    ns.Say(string.format(L["Minimap route: frame %s, hooked %s, lines %s, skin %s (option %s)"],
+        tostring(MinimapRoute() ~= nil), tostring(S.minimapHooked), tostring(S.lineCount), tostring(S.tint ~= nil),
+        tostring(c.minimapRoute)))
     ns.Say(string.format(L["EllesmereUI skinning available: %s, quest tracker settings found: %s"],
         tostring(SkinAllowed()), tostring(TrackerDb() ~= nil)))
 end

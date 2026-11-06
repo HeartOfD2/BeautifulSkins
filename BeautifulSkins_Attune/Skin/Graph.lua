@@ -407,6 +407,17 @@ local function StyleSideBox()
     b:Show()
 end
 
+-- Attune rewrites the counts of an open character trial straight on its cards, without a build of the chain.
+local function OnStatLabels()
+    for _, item in ipairs(A.ShownNodes()) do
+        local d = decos[item.node]
+        if d and A.TypeKey(item.step) == "stat" then
+            local _, parts = A.Node(item.step.ID)
+            if parts.title then d.title:SetText(Skin.Plain(parts.title:GetText() or "")) end
+        end
+    end
+end
+
 local function StyleWorkInProgress()
     local wip = A.WorkInProgress()
     if not wip or not Skin.Once(wip, "style") then return end
@@ -808,6 +819,7 @@ ns.Modules.Register("graph", {
         A.On("node", OnNode, "graph")
         A.On("sideFeeder", OnSideFeeder, "graph")
         A.On("select", OnSelect, "graph")
+        A.On("statLabels", OnStatLabels, "graph")
         A.On("view", function()
             if not A.IsListView() then HideHead() end
         end, "graph")

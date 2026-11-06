@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.3 (2026-11-06)
+
+- Tested with Attune 16001-37.
+- Attune's new "Will not do" checkbox at the bottom right of the chain has the same flat look, and attunements you set
+  aside are greyed in the list.
+- Attune's Character Progression chains: the cards show the name of each goal, and their counts update while the chain
+  is open.
+- New: ShortestPathForever's route on the minimap takes the accent colour (RestedXP options, Navigation > Map; on by
+  default, off gives the route its own colours back).
+- Fix: a character without a second name is recognised by the Attune skin.
+
 ## 0.2.2 (2026-11-05)
 
 - Fix: with ShortestPathForever following a RestedXP guide, the target no longer switches on and off several times a

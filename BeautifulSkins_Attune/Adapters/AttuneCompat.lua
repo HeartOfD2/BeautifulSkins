@@ -14,7 +14,7 @@ local _, ns = ...
 local Compat = {}
 ns.AttuneCompat = Compat
 
-Compat.testedVersions = { "16001-32", "16001-34", "16001-35" }
+Compat.testedVersions = { "16001-32", "16001-34", "16001-35", "16001-37" }
 
 Compat.contract = {
     -- data and saved variables
@@ -46,6 +46,11 @@ Compat.contract = {
     { cap = "NextWindow", kind = "field", name = "@Next.minBtn", when = "lazy" },
     { cap = "NextWindow", kind = "field", name = "@Next.rows", when = "lazy" },
     { cap = "AttuneOptions", kind = "field", name = "@Broker.OnClick", when = "lazy" },
+    -- the "Will not do" checkbox on the chain and the counts Attune writes straight on the cards of a character trial
+    { cap = "SkipCheck", kind = "function", name = "Attune_CreateSkipCheck", when = "load" },
+    { cap = "SkipCheck", kind = "function", name = "Attune_UpdateSkipCheck", when = "load" },
+    { cap = "SkipCheck", kind = "global", name = "AttuneSkipCheck", when = "lazy" },
+    { cap = "StatLabels", kind = "function", name = "Attune_RefreshOpenStatLabels", when = "load" },
     { cap = "Frame", kind = "function", name = "Attune_Frame", when = "load" },
     { cap = "ToggleView", kind = "function", name = "Attune_ToggleView", when = "load" },
     { cap = "Portrait", kind = "function", name = "Attune_UpdateWindowPortrait", when = "load" },

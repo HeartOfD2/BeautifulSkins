@@ -167,15 +167,16 @@ local function Draw(d, button, info)
     if info.levels then name = name .. " " .. Skin.Hex(T.textDim) .. info.levels .. "|r" end
     d.name:SetText(name)
     SetSize(d.name, textSize)
-    SetColor(d.name, info.dim and "textDim" or "text")
+    local faded = info.dim or info.skipped
+    SetColor(d.name, faded and "textDim" or "text")
     if info.icon then
         if d.iconSize ~= icon then
             d.iconSize = icon
             d.icon:SetSize(icon, icon)
         end
         d.icon:SetTexture(info.icon)
-        d.icon:SetDesaturated(info.dim and true or false)
-        d.icon:SetAlpha(info.dim and 0.6 or 1)
+        d.icon:SetDesaturated(faded and true or false)
+        d.icon:SetAlpha(faded and 0.6 or 1)
         d.icon:Show()
     else
         d.icon:Hide()

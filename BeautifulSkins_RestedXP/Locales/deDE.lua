@@ -108,6 +108,8 @@ ns.locales.deDE = {
     ["Metres"] = "Meter",
     ["MINIMAP"] = "MINIKARTE",
     ["Minimap pin size (%)"] = "Minikarten-Markierungsgröße (%)",
+    ["Minimap route: frame %s, hooked %s, lines %s, skin %s (option %s)"] =
+        "Minikarten-Route: Frame %s, Hook %s, Linien %s, Skin %s (Option %s)",
     ["Navigation"] = "Navigation",
     ["Navigation source"] = "Navigationsquelle",
     ["Next step"] = "Nächster Schritt",
@@ -164,6 +166,7 @@ ns.locales.deDE = {
     ["Right-click to pick a guide"] = "Rechtsklick, um einen Guide zu wählen",
     ["Right-click: BeautifulRestedXP options"] = "Rechtsklick: BeautifulRestedXP-Optionen",
     ["Ring"] = "Ring",
+    ["Route in the accent colour"] = "Route in der Akzentfarbe",
     ["ROUTE SOURCE"] = "ROUTENQUELLE",
     ["Sample harbour"] = "Beispielhafen",
     ["Sample target"] = "Beispielziel",
@@ -227,6 +230,8 @@ ns.locales.deDE = {
     ["The lowest position (230) keeps the width RestedXP uses. Higher values set the width in pixels (240 to 480)."] =
         "Die unterste Stellung (230) behält die Breite von RestedXP. Höhere Werte setzen die Breite in Pixeln (240 bis 480).",
     ["The target changes after combat."] = "Das Ziel wechselt nach dem Kampf.",
+    ["The walking dots and the lines of flights, boats and lifts on the minimap take the accent colour instead of one colour per way of travel. Off gives ShortestPathForever's own colours back."] =
+        "Die Laufpunkte und die Linien von Flügen, Schiffen und Aufzügen auf der Minikarte nehmen die Akzentfarbe an, statt je Reiseart eine eigene Farbe zu haben. Aus: ShortestPathForever bekommt seine eigenen Farben zurück.",
     ["Thin (1 px)"] = "Dünn (1 px)",
     ["Ticks, letters and the centre mark in the skin look: accent colour for north, the centre and the walking marks, the skin font, the window colour behind the band. Off gives ShortestPathForever's own look back."] =
         "Striche, Buchstaben und Mittelmarke im Skin-Look: Akzentfarbe für Norden, die Mitte und die Wegmarken, die Skin-Schrift, die Fensterfarbe hinter dem Band. Aus stellt das Aussehen von ShortestPathForever wieder her.",
