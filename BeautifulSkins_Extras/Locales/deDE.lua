@@ -190,8 +190,8 @@ ns.locales.deDE = {
         "Aus entfernt die Markierungen von OpenMap vollständig („Markierung setzen“, die Liste, die Markierungen auf der Karte). Wirkt sofort.",
     ["Off takes OpenMap's quill away completely (drawing on the map, your drawings). Works at once."] =
         "Aus entfernt die Feder von OpenMap vollständig (Zeichnen auf der Karte, deine Zeichnungen). Wirkt sofort.",
-    ["Off: no \"Drop a pin\", no pin list, no pins on the map. A Ctrl-click on the map sets nothing; with Shortest Path Forever it plans a journey there, as Shift-click does. On again brings your pins back."] =
-        "Aus: kein „Markierung setzen“, keine Liste, keine Markierungen auf der Karte. Strg-Klick auf die Karte setzt nichts; mit Shortest Path Forever plant er dorthin eine Reise wie Umschalt-Klick. Wieder an bringt deine Markierungen zurück.",
+    ["Off: no \"Drop a pin\", no pin list, no pins on the map, and a Ctrl-click on the map does nothing. On again brings your pins back."] =
+        "Aus: kein „Markierung setzen“, keine Liste, keine Markierungen auf der Karte, und ein Strg-Klick auf die Karte tut nichts. Wieder an bringt deine Markierungen zurück.",
     ["Language of BeautifulSkins and of this window. OpenMap's own descriptions in the tooltips, townsfolk and place names follow the game's language."] =
         "Sprache von BeautifulSkins und dieses Fensters. OpenMaps eigene Beschreibungen in den Tooltips, die Stadtbevölkerung und die Ortsnamen folgen der Spielsprache.",
     ["Off: no drawing on the map, on pins or on dungeon maps, and your drawings stay hidden. Drawing for \"Report a problem\" still works. On again brings your drawings back."] =

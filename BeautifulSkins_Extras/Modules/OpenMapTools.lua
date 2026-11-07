@@ -2,14 +2,17 @@
 -- back what the player had: OpenMap's own settings are only ever changed through its public module table
 -- (OpenMap = its namespace, :GetModule("worldmap")), and the values we change are remembered in our database.
 --   Pins off:  the "Drop a pin" mode ends at once, the pin list closes, your pins and shared pins stay off the map,
---              their buttons leave the map. A Ctrl-click on the map leaves nothing behind: the pin OpenMap makes is
---              taken back and the waypoint is the one from before the click. With Shortest Path Forever it plans a
---              journey there instead, as OpenMap's Shift-click does.
+--              their buttons leave the map. A Ctrl-click on the map does nothing at all: OpenMap's drop never runs, so
+--              it neither makes a pin nor touches the game's waypoint (which is Shortest Path Forever's bend while a
+--              journey runs).
 --   Quill off: drawing ends at once (on the map, on a pin, on a dungeon's map), your drawings stay hidden, their
 --              buttons leave the map. Drawing for "Report a problem" stays: that is another tool.
--- Hook points (OpenMap v0.7.5-beta): mod.SetPinMode, mod.AddPin, mod:TogglePins, mod:ToggleSketch (post-hooks only),
--- mod.db.favorites / pinsHidden / pinsShared / sketchShown, mod.SetPinsHidden, mod.FinishPin, mod.RefreshPins,
--- mod.RefreshSketch, mod:RefreshPanel.
+-- Hook points (OpenMap v0.7.5-beta): mod.SetPinMode, mod:TogglePins, mod:ToggleSketch (post-hooks),
+-- mod.db.favorites / pinsHidden / pinsShared / sketchShown, mod.SetPinsHidden, mod.RefreshSketch, mod:RefreshPanel.
+-- One exception to "post-hooks only" (07.11.2026, for the user's wish that Ctrl-click does nothing): mod.DropWaypoint (Ctrl-click and the pin mode's
+-- click, WorldMap.lua DropAtCursor) gets a wrapper that stops it while pins are off. A post-hook comes too late: OpenMap
+-- has already replaced the game's waypoint, which during a journey is Shortest Path Forever's bend, and SPF then loses
+-- its guidance. The wrapper only touches OpenMap's own module table (no Blizzard code) and passes through otherwise.
 local _, ns = ...
 
 local M = ns.Modules.Register("openmapTools", { addon = "OpenMap", label = "OpenMap: pins and quill" })
@@ -106,73 +109,17 @@ local function PinsBack(mod)
     GiveButtons(mod, "pinButtons")
 end
 
--- The waypoint as it stood before a Ctrl-click: OpenMap's DropAtCursor calls SetPinMode(false) right before it drops
--- the pin (which sets the game's waypoint there), so the snapshot of that call is the one of the same frame.
-local before
+-- Ctrl-click (and a click in pin mode) while pins are off: OpenMap's drop does not run at all.
+local dropBlocked = false
 
-local function Snapshot()
-    local snap = { at = GetTime() }
-    if C_Map and type(C_Map.HasUserWaypoint) == "function" and type(C_Map.GetUserWaypoint) == "function" then
-        local ok, has = pcall(C_Map.HasUserWaypoint)
-        local point = ok and has and C_Map.GetUserWaypoint() or nil
-        local pos = type(point) == "table" and point.position
-        if pos then
-            local x, y
-            if type(pos.GetXY) == "function" then x, y = pos:GetXY() else x, y = pos.x, pos.y end
-            if type(x) == "number" and type(y) == "number" then snap.point = { point.uiMapID, x, y } end
-        end
+local function BlockDrop(mod)
+    local drop = mod.DropWaypoint
+    if type(drop) ~= "function" or dropBlocked then return end
+    dropBlocked = true
+    mod.DropWaypoint = function(...)
+        if M.status == "active" and not OM.PinsOn() then return end
+        return drop(...)
     end
-    local mod = OM.Mod()
-    snap.own = mod and ns.T(mod.char) and mod.char.pin or nil
-    before = snap
-end
-
--- The game's waypoint back as it was before the click. What the game follows (super-tracking) is left alone: those
--- calls are protected on Forever (OpenMap's own attempt is blocked, so the click never changed it).
-local function Restore(mod, snap)
-    if type(mod.ClearPin) == "function" then mod.ClearPin() end -- the click's waypoint and OpenMap's TomTom point
-    if not snap then return end
-    local p = snap.point
-    if p and C_Map and type(C_Map.SetUserWaypoint) == "function" and UiMapPoint
-        and type(UiMapPoint.CreateFromCoordinates) == "function" then
-        pcall(C_Map.SetUserWaypoint, UiMapPoint.CreateFromCoordinates(p[1], p[2], p[3]))
-    end
-    if snap.own and ns.T(mod.char) then mod.char.pin = snap.own end
-end
-
--- With Shortest Path Forever: a journey to the clicked point, as OpenMap's Shift-click plans one (its API, owner
--- "OpenMap"). False without it, or when it plans nothing (journeys off in its settings, no place to go).
-local function Journey(mapID, x, y)
-    local spf = rawget(_G, "ShortestPathForever")
-    local api = type(spf) == "table" and ns.T(spf.API)
-    if not (api and type(api.Navigate) == "function") then return false end
-    local ok, started = pcall(api.Navigate, "OpenMap", mapID, x, y)
-    return ok and started and true or false
-end
-
--- A pin OpenMap just made (Ctrl-click) while pins are off: its card closes, the pin goes, the waypoint is the one from
--- before the click; with Shortest Path Forever a journey goes there instead.
-local function TakeBackPin(mapID, x, y)
-    if OM.PinsOn() then return end
-    local mod = OM.Mod()
-    local pins = mod and ns.T(mod.db.pins)
-    local snap = before and before.at == GetTime() and before or nil
-    before = nil
-    if not (pins and ns.T(pins.list)) then return end
-    if type(mod.FinishPin) == "function" then mod.FinishPin() end
-    local newest = (tonumber(pins.nextId) or 1) - 1
-    for i = #pins.list, 1, -1 do
-        local p = pins.list[i]
-        if type(p) == "table" and (p.id == newest or (p.map == mapID and p.note == "" and i == #pins.list)) then
-            table.remove(pins.list, i)
-            break
-        end
-    end
-    -- (AddPin shows hidden pins again so the new one is not dropped out of sight)
-    if mod.db.pinsHidden ~= true and type(mod.SetPinsHidden) == "function" then mod.SetPinsHidden(true) end
-    if type(mod.RefreshPins) == "function" then mod.RefreshPins() end
-    Restore(mod, snap)
-    if type(mapID) == "number" and type(x) == "number" and type(y) == "number" then Journey(mapID, x, y) end
 end
 
 ---------------------------------------------------------------------------
@@ -241,10 +188,9 @@ function M.Enable()
     local mod = OM.Mod()
     if not mod then return end
     Hook(mod, "SetPinMode", function(on)
-        if OM.PinsOn() then return end
-        if on then mod.SetPinMode(false) else Snapshot() end
+        if on and not OM.PinsOn() then mod.SetPinMode(false) end
     end)
-    Hook(mod, "AddPin", TakeBackPin)
+    BlockDrop(mod)
     Hook(mod, "TogglePins", function()
         if not OM.PinsOn() and type(mod.PinsShown) == "function" and mod.PinsShown() then mod:TogglePins(false) end
     end)

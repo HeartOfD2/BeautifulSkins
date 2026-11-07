@@ -375,7 +375,7 @@ local function ToolRows()
     local rows = {
         { type = "header", text = L["MAP PINS"] },
         { type = "toggle", text = L["Map pins"], refresh = true,
-            tip = L["Off: no \"Drop a pin\", no pin list, no pins on the map. A Ctrl-click on the map sets nothing; with Shortest Path Forever it plans a journey there, as Shift-click does. On again brings your pins back."],
+            tip = L["Off: no \"Drop a pin\", no pin list, no pins on the map, and a Ctrl-click on the map does nothing. On again brings your pins back."],
             get = tools.PinsOn, set = tools.SetPins },
     }
     if mod then

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.2.8 (2026-11-07)
+
+- OpenMap fix: with map pins off, Ctrl-click on the map now does nothing at all. Before, it set the game's waypoint or
+  planned a ShortestPathForever journey, and during a journey it could leave a stray waypoint behind and break the
+  next Shift-click.
+
 ## 0.2.7 (2026-11-07)
 
 - New: OpenMap. The OpenMap button on the map opens a new menu in the BeautifulSkins look: search, one row of quick
