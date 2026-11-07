@@ -17,6 +17,7 @@ ns.DEFAULTS = {
     modules = {
         whisper = true, whisperButton = true, skillup = true, waypoint = true,
         gqTracker = true, gqArrow = true, gqWindow = true, gqPopups = true,
+        openmap = true,         -- OpenMap: our map menu instead of OpenMap's
     },
     whisper = {
         look = true,            -- Whisper Messenger's dark preset, flat frame and the EllesmereUI font
@@ -43,6 +44,13 @@ ns.DEFAULTS = {
         -- point = { point, relPoint, x, y } -- free arrow position
     },
     gqWindow = { hidePortrait = true },
+    openmap = {
+        pins = true,            -- OpenMap's map pins (off: the tool is gone, live)
+        quill = true,           -- OpenMap's quill (off: the tool is gone, live)
+        window = {},            -- our map menu: place, size (Kit.Window geometry)
+        -- page = "openmap.map" -- our map menu: the page shown last
+        saved = {},             -- OpenMap's own values while a tool is off (they go back when it is on again)
+    },
 }
 
 local frame = CreateFrame("Frame")

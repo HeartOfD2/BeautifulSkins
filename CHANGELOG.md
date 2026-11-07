@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.7 (2026-11-07)
+
+- New: OpenMap. The OpenMap button on the map opens a new menu in the BeautifulSkins look: search, one row of quick
+  buttons and the settings in eight pages (On the map, Dungeons, Townsfolk, Look, Up close, Window and buttons, Pins and
+  quill, Other addons) with switches, sliders and choices instead of one long list of tick boxes. The same pages are in
+  the BeautifulSkins options (More skins > OpenMap). Switch it off under More skins > Skins.
+- OpenMap's map pins and its quill can each be switched off completely (More skins > Skins, or Pins and quill in the
+  menu). It works at once; switching on again brings back your pins, drawings and buttons. With pins off, Ctrl-click on
+  the map sets nothing; with ShortestPathForever it plans a journey there, as Shift-click does.
+- The OpenMap menu has the language choice too (Window and buttons), with a button to reload.
+
 ## 0.2.6 (2026-11-07)
 
 - RestedXP fix: after you set your own waypoint (Shift-click on the map), the arrow pointed at the RestedXP target while the

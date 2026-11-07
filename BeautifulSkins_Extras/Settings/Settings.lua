@@ -75,6 +75,13 @@ local function SkinRows()
         ModuleToggle("gqPopups", L["GearQuest: popups and toasts"]),
         ModuleToggle("skillup", L["SkillUp Forever: reagents tracker"]),
         ModuleToggle("waypoint", L["Waypoint UI: colours"]),
+        ModuleToggle("openmap", L["OpenMap: new map menu"]),
+        { type = "toggle", text = L["OpenMap: map pins"], refresh = true,
+            tip = L["Off takes OpenMap's map pins away completely (\"Drop a pin\", the pin list, the pins on the map). Works at once."],
+            get = function() return ns.OpenMap.PinsOn() end, set = function(v) ns.OpenMap.SetPins(v) end },
+        { type = "toggle", text = L["OpenMap: quill"], refresh = true,
+            tip = L["Off takes OpenMap's quill away completely (drawing on the map, your drawings). Works at once."],
+            get = function() return ns.OpenMap.QuillOn() end, set = function(v) ns.OpenMap.SetQuill(v) end },
         { type = "button", text = L["Reload UI"], onClick = Reload },
         { type = "header", text = L["STATE"] },
         { type = "text", get = function()
@@ -197,8 +204,8 @@ end
 
 -- One module in the host's options: four pages (keys carry the pack prefix, page keys are unique over all packs).
 function Settings.Modules()
-    return {
-        { key = "Extras", title = L["More skins"], desc = L["GearQuest, SkillUp, Whisper Messenger and Waypoint UI."],
+    local list = {
+        { key = "Extras", title = L["More skins"], desc = L["GearQuest, SkillUp, Whisper Messenger, Waypoint UI and OpenMap."],
             pages = {
                 { key = "extras.skins", label = L["Skins"], rows = SkinRows },
                 { key = "extras.whisper", label = "Whisper Messenger", rows = WhisperRows },
@@ -206,4 +213,7 @@ function Settings.Modules()
                 { key = "extras.other", label = L["SkillUp & Waypoint"], rows = OtherRows },
             } },
     }
+    local openmap = ns.OpenMapSettings and ns.OpenMapSettings.Module()
+    if openmap then list[#list + 1] = openmap end
+    return list
 end

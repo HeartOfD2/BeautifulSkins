@@ -3,7 +3,7 @@
 ![BeautifulSkins](docs/logo.png)
 
 A modern, flat look for **Attune**, **RestedXP Guides**, **GearQuest Forever**, **SkillUp Forever**, **Whisper
-Messenger** and **Waypoint UI** on **World of Warcraft: Forever**, in one addon. It contains BeautifulAttune and
+Messenger**, **Waypoint UI** and **OpenMap** on **World of Warcraft: Forever**, in one addon. It contains BeautifulAttune and
 BeautifulRestedXP (formerly EUI RestedXP Skin): install BeautifulSkins and you have them all.
 
 BeautifulSkins restyles the windows, trackers and markers of these addons while you play. Their data and logic stay
@@ -11,7 +11,7 @@ exactly as they are; BeautifulSkins only changes how things look. Every skin swi
 loaded and stays silent otherwise, so install only the addons you use.
 
 > Unofficial. Not affiliated with or endorsed by the authors of Attune, RestedXP, GearQuest Forever, SkillUp Forever,
-> Whisper Messenger, Waypoint UI or EllesmereUI. The skinned addons are installed separately. EllesmereUI is optional. No code, graphics or
+> Whisper Messenger, Waypoint UI, OpenMap or EllesmereUI. The skinned addons are installed separately. EllesmereUI is optional. No code, graphics or
 > texts from these addons are included.
 
 ![gearquest tracker arrow](docs/screenshots/01-gearquest-tracker-arrow.png)
@@ -27,6 +27,12 @@ loaded and stays silent otherwise, so install only the addons you use.
 ![themes](docs/screenshots/06-themes.png)
 
 ![theme editor](docs/screenshots/07-theme-editor.png)
+
+![openmap menu](docs/screenshots/08-openmap-menu.png)
+
+![openmap look](docs/screenshots/09-openmap-look.png)
+
+![openmap pins and quill](docs/screenshots/10-openmap-pins-and-quill.png)
 
 ## Skins
 
@@ -56,6 +62,11 @@ loaded and stays silent otherwise, so install only the addons you use.
     unread whispers and glows while one waits. Whisper Messenger's own floating and minimap icons can be hidden.
 - **Waypoint UI** – waypoint, beam, pinpoint and navigator arrow in the accent colour, the texts in the EllesmereUI font.
   Or keep Waypoint UI's quest state colours.
+- **OpenMap** – a new map menu instead of OpenMap's own: the place search on top, one row of quick buttons (find me,
+  quest log, pins, quill, report a problem, what's new) and every setting sorted into eight clear pages with switches,
+  sliders and choices; settings that depend on another are greyed until they apply. The same pages are in the
+  BeautifulSkins options. **Map pins** and the **quill** can each be switched off completely, and on again with
+  everything you had.
 
 ## Look and options
 
