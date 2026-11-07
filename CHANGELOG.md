@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.2.9 (2026-11-07)
+
+- With Waypoint UI: while the BeautifulRestedXP arrow is on, Waypoint UI's "RestedXP support" is switched off (and
+  back on when you switch our arrow off). It made a navigation of its own to every RestedXP target, and while it was
+  tracked ShortestPathForever handed its bends to Waypoint UI, where they landed in the map's corner: journeys showed
+  no bends after a reload until that waypoint was clicked away.
+- ShortestPathForever 1.22.46 and later: its own gold goal pin and, since 1.22.48, its numbered markers for stops
+  and turns (world map, minimap, compass, on screen) are in the accent colour again, and with OpenMap the waypoint
+  marker of the route's next bend too (your own waypoints keep their gold).
+- Switching the target (RestedXP step, your own journey, a GearQuest hunt) first clears a waypoint that was still on
+  the map. Such a leftover waypoint made ShortestPathForever skip the bends, and the arrow pointed at the end.
+
 ## 0.2.8 (2026-11-07)
 
 - OpenMap fix: with map pins off, Ctrl-click on the map now does nothing at all. Before, it set the game's waypoint or

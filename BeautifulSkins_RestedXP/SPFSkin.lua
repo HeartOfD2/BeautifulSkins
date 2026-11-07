@@ -610,7 +610,11 @@ end
 -- frame is rendered.
 --
 -- Markers are textures: the goal pin, ring and arrow marks, the lit stop button, their glows. A texture is tinted by
--- the atlas it shows, so a marker that turns into a transport or flight master icon gets its own look back.
+-- the atlas or file it shows, so a marker that turns into a transport or flight master icon gets its own look back.
+-- Since SPF 1.22.46 the goal is SPF's own gold pin, a file (media\Pin) on the world map, minimap, compass and screen;
+-- since 1.22.48 the stops and the compass's turns up to 25 wear gold numbered markers, files too (media\Numbers\<n>).
+-- OpenMap draws the game's waypoint on its stitched map itself (Map/Nav.lua, pin set "waypoint"); while SPF guides,
+-- that waypoint is SPF's next bend and takes the tint too, the player's own waypoint keeps its gold.
 --
 -- World map: SPF keeps its pins on frames of its own, because anything written into the map taints Forever's gamepad
 -- interface (SPF: UI/MapCanvas.lua). We only read the canvas's children to find SPF's pin layer, and hook SPF's pins,
@@ -625,6 +629,9 @@ local MARK_ATLAS = {
     ["UI-QuestPoi-OuterGlow"] = true,
 }
 local STOP_MARKS = { "Texture", "Button", "Glow" }
+local SPF_PIN = "Interface\\AddOns\\ShortestPathForever\\media\\Pin" -- SPF's own goal pin (UI/Art.lua ns.PIN_FILE)
+local SPF_NUMBERS = "Interface\\AddOns\\ShortestPathForever\\media\\Numbers\\%d" -- its numbered markers (ns.NumberFile)
+local SPF_NUMBER_MAX = 25
 local SCAN_EVERY = 0.25 -- seconds between looks for the pin layer and for SPF's screen pin
 
 local function MinimapRoute()
@@ -688,10 +695,35 @@ local function RepaintLines(owner)
     SettleAlpha(owner)
 end
 
+-- What GetTexture reports for SPF's own art (a path or a file id, whichever this client hands out): the goal pin and the
+-- numbered markers, read once from a hidden texture of ours.
+local function ArtFiles()
+    if not S.artFiles then
+        local files = {}
+        local probe = UIParent:CreateTexture(nil, "BACKGROUND")
+        probe:Hide()
+        local function Learn(path)
+            probe:SetTexture(path)
+            local id = probe:GetTexture()
+            if id ~= nil then files[id] = true end
+        end
+        Learn(SPF_PIN)
+        for n = 1, SPF_NUMBER_MAX do Learn(SPF_NUMBERS:format(n)) end
+        probe:SetTexture(nil)
+        S.artFiles = files
+    end
+    return S.artFiles
+end
+
+local function ShowsPin(tex)
+    local file = tex.GetTexture and tex:GetTexture()
+    return file ~= nil and ArtFiles()[file] == true
+end
+
 local function PaintMark(tex)
     local m = marks[tex]
     local tint = S.tint
-    if tint and (m.forced or MARK_ATLAS[m.atlas]) then
+    if tint and not m.plain and (m.forced or m.pin or MARK_ATLAS[m.atlas]) then
         tex:SetDesaturated(true)
         tex:SetVertexColor(tint[1], tint[2], tint[3])
     else
@@ -705,13 +737,14 @@ local function Mark(tex)
     if type(tex) ~= "table" or marks[tex] then return end
     local r, g, b = tex:GetVertexColor()
     marks[tex] = { r = r or 1, g = g or 1, b = b or 1, desaturated = tex:IsDesaturated() and true or false,
-        atlas = tex:GetAtlas() }
+        atlas = tex:GetAtlas(), pin = ShowsPin(tex) }
     hooksecurefunc(tex, "SetAtlas", function(self, atlas)
-        marks[self].atlas = atlas
+        marks[self].atlas, marks[self].pin = atlas, false
         PaintMark(self)
     end)
     hooksecurefunc(tex, "SetTexture", function(self)
         marks[self].atlas = nil
+        marks[self].pin = ShowsPin(self)
         PaintMark(self)
     end)
     PaintMark(tex)
@@ -721,8 +754,10 @@ end
 -- button of the current stop stay.
 local function PaintStop(pin)
     local later = not pin.current
-    marks[pin.Numeral].forced = later
-    PaintMark(pin.Numeral)
+    if marks[pin.Numeral] then -- the numeral atlas of SPF up to 1.22.47
+        marks[pin.Numeral].forced = later
+        PaintMark(pin.Numeral)
+    end
     local c, tint = stopNumber[pin], S.tint
     if tint and later then
         pin.Number:SetTextColor(tint[1], tint[2], tint[3])
@@ -732,7 +767,8 @@ local function PaintStop(pin)
 end
 
 local function OnStopAcquired(pin)
-    stopNumber[pin] = { pin.Number:GetTextColor() }
+    local r, g, b = pin.Number:GetTextColor()
+    stopNumber[pin] = { r or 1, g or 1, b or 1 }
     PaintStop(pin)
 end
 
@@ -745,7 +781,9 @@ local function WatchPin(pin)
         return
     end
     -- The journey's stops, the flight master's tracked marks and the glow of a hovered dock; the icons stay SPF's.
-    if type(pin.Numeral) == "table" and type(pin.Number) == "table" and type(pin.OnAcquired) == "function" then
+    -- A stop has its font number and disc (and up to SPF 1.22.47 a numeral atlas); from 1.22.48 its numbered marker is
+    -- the file on its Texture.
+    if type(pin.Number) == "table" and type(pin.Disc) == "table" and type(pin.OnAcquired) == "function" then
         for _, key in ipairs(STOP_MARKS) do Mark(pin[key]) end
         Mark(pin.Numeral)
         hooksecurefunc(pin, "OnAcquired", OnStopAcquired)
@@ -800,6 +838,40 @@ local function OnWatch(_, elapsed)
     MarkScreenPin()
 end
 
+-- The game's waypoint is SPF's bend while it matches SPF's last write (ShortestPathForeverCharDB.guideWaypoint).
+local function WaypointIsBend()
+    local db = _G.ShortestPathForeverCharDB
+    local saved = type(db) == "table" and db.guideWaypoint
+    if type(saved) ~= "table" or not (C_Map and C_Map.HasUserWaypoint and C_Map.GetUserWaypoint) then return false end
+    local okHas, has = pcall(C_Map.HasUserWaypoint)
+    if not (okHas and has) then return false end
+    local point = C_Map.GetUserWaypoint()
+    local pos = type(point) == "table" and point.position
+    if not pos or point.uiMapID ~= saved.uiMapID then return false end
+    local x, y
+    if type(pos.GetXY) == "function" then x, y = pos:GetXY() else x, y = pos.x, pos.y end
+    return type(x) == "number" and type(y) == "number" and type(saved.x) == "number" and type(saved.y) == "number"
+        and math.abs(x - saved.x) < 1e-4 and math.abs(y - saved.y) < 1e-4
+end
+
+-- OpenMap's marker of the game's waypoint (a pin of its set "waypoint", made anew on every waypoint change).
+local function HookOpenMap()
+    if S.openMapHooked then return end
+    local om = rawget(_G, "OpenMap")
+    local stitch = type(om) == "table" and om.MapStitch
+    if type(stitch) ~= "table" or type(stitch.AddPin) ~= "function" or type(stitch.GetPinSet) ~= "function" then return end
+    S.openMapHooked = true
+    hooksecurefunc(stitch, "AddPin", function(set)
+        if set == nil or set ~= stitch.GetPinSet("waypoint") or type(set.pins) ~= "table" then return end
+        local pin = set.pins[#set.pins]
+        local icon = type(pin) == "table" and pin.Icon
+        if type(icon) ~= "table" then return end
+        Mark(icon)
+        marks[icon].plain = not WaypointIsBend()
+        PaintMark(icon)
+    end)
+end
+
 local function HookMinimap(f)
     if S.minimapHooked then return end
     local layer = f.strokeLayer
@@ -817,6 +889,7 @@ local function ApplyMarks()
     local tint = MinimapRouteOn() and { ns.Accent() } or nil
     S.tint = tint
     HookMinimap(f)
+    HookOpenMap()
     Mark(f.Goal)
     WatchLines(f)
     ScanMap()

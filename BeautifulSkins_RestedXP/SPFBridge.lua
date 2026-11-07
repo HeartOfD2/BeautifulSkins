@@ -458,6 +458,65 @@ local function SyncSource(nav)
     SyncArrow(nav)
 end
 
+-- ---------------------------------------------------------------------------------------------------------------
+-- Waypoint UI's "RestedXP support"
+-- With it on, Waypoint UI makes a navigation of its own to RestedXP's target after every step change and reload, because
+-- RXP's arrow frame is shown (Arrow.lua keeps it shown, only invisible). While that navigation is tracked, SPF writes no
+-- bends but hands each one to Waypoint UI, and with 0-1 coordinates where Waypoint UI counts in percent, so the bend lands
+-- in the map's corner. Our arrow already shows RestedXP's targets: the option goes off while our arrow is on, and the
+-- user's value comes back when our arrow is switched off or our settings are reset. Waypoint UI reads its settings from
+-- WaypointDB_Global on every use, so the change works at once; a navigation it already made to the RXP target goes too.
+local WUI_DB, WUI_KEY, WUI_FLAG = "WaypointDB_Global", "RestedXPSupportEnabled", "RestedXP_Waypoint"
+local WUI = {}
+ns.WaypointUI = WUI
+
+local function WuiDB()
+    local db = rawget(_G, WUI_DB)
+    return type(db) == "table" and db or nil
+end
+
+local function ClearWuiRestedNavigation()
+    local api = rawget(_G, "WaypointUIAPI")
+    local nav = type(api) == "table" and api.Navigation
+    if type(nav) ~= "table" or type(nav.IsUserNavigationFlagged) ~= "function" or type(nav.ClearUserNavigation) ~= "function" then
+        return
+    end
+    if Try(nav.IsUserNavigationFlagged, WUI_FLAG) then pcall(nav.ClearUserNavigation) end
+end
+
+-- ns.db.wuiBackup = true: the option was on and we switched it off.
+function WUI.Restore()
+    local db = WuiDB()
+    if not (db and ns.db) or ns.db.wuiBackup == nil then return end -- Waypoint UI missing this session: keep the note
+    if db[WUI_KEY] == false then db[WUI_KEY] = true end
+    ns.db.wuiBackup = nil
+end
+
+function WUI.Sync()
+    local db = WuiDB()
+    if not (db and ns.db) then return end
+    if ns.db.nav.showArrow == false then
+        WUI.Restore()
+        return
+    end
+    if db[WUI_KEY] == true then
+        ns.db.wuiBackup = true
+        db[WUI_KEY] = false
+    end
+    if ns.db.wuiBackup then ClearWuiRestedNavigation() end
+end
+
+-- Waypoint UI's settings exist from its ADDON_LOADED on (ours runs first there: our frame was made earlier, so Waypoint UI
+-- starts with the option already off); PLAYER_LOGIN covers a Waypoint UI that loaded before our database was ready.
+local wuiWatch = CreateFrame("Frame")
+wuiWatch:RegisterEvent("ADDON_LOADED")
+wuiWatch:RegisterEvent("PLAYER_LOGIN")
+wuiWatch:SetScript("OnEvent", function(self, event, name)
+    if event == "ADDON_LOADED" and name ~= "WaypointUI" then return end
+    if ns.db then Try(WUI.Sync) end
+    if event == "PLAYER_LOGIN" then self:UnregisterAllEvents() end
+end)
+
 local SYNC = {
     source = SyncSource,
     -- SPF's "Keep journeys after a reload" is what writes the player's own journey to where Targets.lua can read it
@@ -477,6 +536,7 @@ function SPF.OnOptionChanged(name)
     if not nav then return end
     targetCache.time = -1
     eta.key = nil
+    if name == nil or name == "showArrow" then Try(WUI.Sync) end
     if SPF.Loaded() then
         if name then
             if SYNC[name] then SYNC[name](nav) end
@@ -515,6 +575,9 @@ function ns.NavDebug()
     local wx, wy, wc, wwx, wwy
     if type(wp) == "table" and ns.CanAccess(wp) then wx, wy = PosXY(wp.position) end
     if wx then wc, wwx, wwy = WorldPos(wp.uiMapID, wx, wy) end
+    local wuiDB = WuiDB()
+    say(("Waypoint UI: RestedXP support %s  switched off by us %s"):format(
+        S(wuiDB and wuiDB[WUI_KEY]), S(ns.db and ns.db.wuiBackup == true)))
     say(("waypoint: %s  set by SPF %s  Waypoint UI holding %s"):format(
         wx and ("map %s %s / %s"):format(S(wp.uiMapID), Num(wx * 100, 2), Num(wy * 100, 2)) or "none",
         S(wc and SpfOwnsWaypoint(wc, wwx, wwy) or false), S(WaypointUIHolding())))

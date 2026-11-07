@@ -114,8 +114,8 @@ ns.locales.deDE = {
     ["Next step"] = "Nächster Schritt",
     ["None"] = "Keiner",
     ["Off"] = "Aus",
-    ["Off hides this arrow, for example when TomTom shows the way, and puts your ShortestPathForever setting back. While it is on, ShortestPathForever's own arrow stays invisible. RestedXP's own arrow stays hidden until you also switch off \"Hide RestedXP's own arrow\". GearQuest hunts then use GearQuest's own arrow."] =
-        "Aus blendet diesen Pfeil aus, zum Beispiel wenn TomTom den Weg zeigt, und stellt deine Einstellung in ShortestPathForever wieder her. Solange er an ist, bleibt der eigene Pfeil von ShortestPathForever unsichtbar. Der eigene Pfeil von RestedXP bleibt verborgen, bis du auch „Eigenen Pfeil von RestedXP ausblenden“ ausschaltest. GearQuest-Jagden nutzen dann den eigenen Pfeil von GearQuest.",
+    ["Off hides this arrow, for example when TomTom shows the way, and puts your ShortestPathForever and Waypoint UI settings back. While it is on, ShortestPathForever's own arrow stays invisible and Waypoint UI's \"RestedXP support\" stays off (it would take the waypoint from ShortestPathForever's bends). RestedXP's own arrow stays hidden until you also switch off \"Hide RestedXP's own arrow\". GearQuest hunts then use GearQuest's own arrow."] =
+        "Aus blendet diesen Pfeil aus, zum Beispiel wenn TomTom den Weg zeigt, und stellt deine Einstellungen in ShortestPathForever und Waypoint UI wieder her. Solange er an ist, bleibt der eigene Pfeil von ShortestPathForever unsichtbar und die „RestedXP-Unterstützung“ von Waypoint UI aus (sie würde ShortestPathForever den Wegpunkt für die Biegungen wegnehmen). Der eigene Pfeil von RestedXP bleibt verborgen, bis du auch „Eigenen Pfeil von RestedXP ausblenden“ ausschaltest. GearQuest-Jagden nutzen dann den eigenen Pfeil von GearQuest.",
     ["Off: drag the arrow with the left mouse button; right-click centres it horizontally."] =
         "Aus: Den Pfeil mit der linken Maustaste verschieben; Rechtsklick zentriert ihn waagerecht.",
     ["Off: progress bars use the accent colour."] = "Aus: Die Fortschrittsbalken nutzen die Akzentfarbe.",

@@ -126,6 +126,7 @@ function ns.ResetToDefaults()
     if not ns.db then return end
     if ns.RXPArrow then ns.RXPArrow.Restore() end
     if ns.SPF then ns.SPF.RestoreAll() end
+    if ns.WaypointUI then ns.WaypointUI.Restore() end
     ns.db.guide = DeepCopy(ns.DEFAULTS.guide)
     ns.db.nav = DeepCopy(ns.DEFAULTS.nav)
     ns.db.spfSkin = DeepCopy(ns.DEFAULTS.spfSkin)

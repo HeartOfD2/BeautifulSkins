@@ -104,12 +104,22 @@ end
 -- ---------------------------------------------------------------------------------------------------------------
 -- Actions
 
+-- A waypoint still on the map (the player's own, another addon's, a bend left over from before) would stand in SPF's
+-- way: SPF keeps a waypoint it finds when a journey starts as the player's, and the user saw journeys without bends and
+-- the arrow aiming at the end. Every switch clears it first (only the game's own waypoint; ending its tracking is the
+-- game's part of clearing it).
+local function ClearWaypoint()
+    if not (C_Map and type(C_Map.HasUserWaypoint) == "function" and type(C_Map.ClearUserWaypoint) == "function") then return end
+    if Try(C_Map.HasUserWaypoint) then pcall(C_Map.ClearUserWaypoint) end
+end
+
 local function Navigate(owner, stop)
     local api = Api()
     if not api then
         ns.Say(L["ShortestPathForever is not loaded."])
         return
     end
+    ClearWaypoint()
     local ok, started = pcall(api.NavigateRoute, owner, { stop })
     if not (ok and started) then ns.Say(L["ShortestPathForever could not plan this journey."]) end
 end
@@ -256,6 +266,7 @@ local function GearQuestJourney(entry)
         if type(gq.Guide) == "table" and type(gq.Guide.ClearForeverPin) == "function" then
             pcall(gq.Guide.ClearForeverPin, gq.Guide)
         end
+        ClearWaypoint()
         -- GearQuest's spot is in percent, SPF wants 0-1
         local ok, started = pcall(api.NavigateRoute, OWN, { { map = spot.mapId, x = spot.x / 100, y = spot.y / 100, title = name } })
         if not (ok and started) then

@@ -4,7 +4,7 @@
 ## Notes: Skins for GearQuest Forever, SkillUp Forever, Whisper Messenger, Waypoint UI and OpenMap. Loaded by BeautifulSkins.
 ## Notes-deDE: Skins für GearQuest Forever, SkillUp Forever, Whisper Messenger, Waypoint UI und OpenMap. Wird von BeautifulSkins geladen.
 ## Author: HeartOfD2
-## Version: 0.2.8
+## Version: 0.2.9
 ## Category: Miscellaneous
 ## IconTexture: Interface\AddOns\BeautifulSkins\Media\Icon
 ## LoadOnDemand: 1
