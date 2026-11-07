@@ -178,15 +178,41 @@ function ns.MakeGoal(mapID, mx, my, name)
     }
 end
 
+-- Waypoint UI navigates with the native waypoint and SPF hands its bends to it instead of writing the waypoint
+-- (SPF Journey/JourneyGuide.lua, WaypointUIHolding): then the native waypoint is SPF's bend all the same.
+local function WaypointUIHolding()
+    local api = rawget(_G, "WaypointUIAPI")
+    local navigation = type(api) == "table" and api.Navigation
+    if type(navigation) ~= "table" or type(navigation.GetUserNavigation) ~= "function" then return false end
+    return Try(navigation.GetUserNavigation) ~= nil
+end
+
+-- Whether SPF wrote the native waypoint at this world point. SPF keeps its last write in
+-- ShortestPathForeverCharDB.guideWaypoint and clears it when it stops guiding. When SPF starts the player's own journey
+-- it first gives back the waypoint that stood before the guide's (often one at the RestedXP target); until SPF writes
+-- its first bend, and for good when the new journey's guide yields or stops, that waypoint is someone else's.
+-- Same tolerance as SPF's SameWaypoint: one yard.
+local function SpfOwnsWaypoint(cont, wx, wy)
+    if WaypointUIHolding() then return true end
+    local db = _G.ShortestPathForeverCharDB
+    local saved = type(db) == "table" and db.guideWaypoint
+    if type(saved) ~= "table" then return false end
+    local sc, sx, sy = WorldPos(saved.uiMapID, saved.x, saved.y)
+    if not sc or sc ~= cont then return false end
+    local dx, dy = sx - wx, sy - wy
+    return dx * dx + dy * dy <= 1
+end
+
 -- SPF's current waypoint (the next bend of its route) while SPF guides a journey and that waypoint is tracked.
 -- guide: the journey is RestedXP's; otherwise it is another one (the player's own, a quest, /way).
 local function SPFWaypoint()
     local api = SPF.Api()
     if not api then return end
     local guide = Try(api.CurrentStop, OWNER) ~= nil
-    -- "Arrow to the next map marker": whatever marker is tracked counts, also without a journey of SPF's
+    local journey = guide or (type(api.Active) == "function" and Try(api.Active)) == true
+    -- "Arrow to the next map marker": without a journey of SPF's, whatever marker is tracked counts
     local anyMarker = ns.db and ns.db.nav and ns.db.nav.nextMarker == true
-    if not guide and not anyMarker and not (type(api.Active) == "function" and Try(api.Active)) then return end
+    if not journey and not anyMarker then return end
     local tracking = C_SuperTrack and C_SuperTrack.IsSuperTrackingUserWaypoint
     if not (tracking and Try(tracking)) then return end
     local wp = C_Map.GetUserWaypoint and Try(C_Map.GetUserWaypoint)
@@ -194,7 +220,11 @@ local function SPFWaypoint()
     local x, y = PosXY(wp.position)
     if not x then return end
     local cont, wx, wy = WorldPos(wp.uiMapID, x, y)
-    if cont then return cont, wx, wy, guide end
+    if not cont then return end
+    -- During a journey a waypoint SPF did not set is no bend of its route, also with anyMarker (SPF's own arrow never
+    -- follows it either): ns.Target then aims straight at the journey's goal.
+    if journey and not SpfOwnsWaypoint(cont, wx, wy) then return end
+    return cont, wx, wy, guide
 end
 
 local targetCache = { time = -1 }
@@ -481,6 +511,13 @@ function ns.NavDebug()
     say(("source: configured %s  effective %s  actual %s"):format(S(configured), S(effective), S(t and t.source or "none")))
     say(("SPF: loaded %s  version %s  API %s  CurrentStop(%s) %s  waypoint tracked %s"):format(
         S(SPF.Loaded()), S(SPF.Version()), S(api ~= nil), OWNER, S(stop), S(tracking)))
+    local wp = C_Map.GetUserWaypoint and Try(C_Map.GetUserWaypoint)
+    local wx, wy, wc, wwx, wwy
+    if type(wp) == "table" and ns.CanAccess(wp) then wx, wy = PosXY(wp.position) end
+    if wx then wc, wwx, wwy = WorldPos(wp.uiMapID, wx, wy) end
+    say(("waypoint: %s  set by SPF %s  Waypoint UI holding %s"):format(
+        wx and ("map %s %s / %s"):format(S(wp.uiMapID), Num(wx * 100, 2), Num(wy * 100, 2)) or "none",
+        S(wc and SpfOwnsWaypoint(wc, wwx, wwy) or false), S(WaypointUIHolding())))
     say(("SPF arrow: setting %s  frame found %s  shown %s  alpha %s  arrow part alpha %s"):format(
         S(SPF.Get("arrow")), S(spfArrow ~= nil), S(spfArrow and spfArrow:IsShown()),
         Num(spfArrow and spfArrow:GetAlpha(), 2), Num(spfArrow and spfArrow.Arrow:GetAlpha(), 2)))

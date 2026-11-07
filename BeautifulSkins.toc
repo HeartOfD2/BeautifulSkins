@@ -4,7 +4,7 @@
 ## Notes: Modern, flat skins for Attune, RestedXP, GearQuest, SkillUp, Whisper Messenger and Waypoint UI. With EllesmereUI or on its own.
 ## Notes-deDE: Moderne, flache Skins für Attune, RestedXP, GearQuest, SkillUp, Whisper Messenger und Waypoint UI. Mit EllesmereUI oder eigenständig.
 ## Author: HeartOfD2
-## Version: 0.2.5
+## Version: 0.2.6
 ## X-Curse-Project-ID: 1762029
 ## X-Website: https://github.com/HeartOfD2/BeautifulSkins
 ## Category: Miscellaneous
