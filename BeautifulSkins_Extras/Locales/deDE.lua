@@ -256,8 +256,6 @@ ns.locales.deDE = {
     ["The windowed map's size and place back to Blizzard's."] =
         "Größe und Position der Fensterkarte zurück auf Blizzards Standard.",
     ["Theme and colours"] = "Theme und Farben",
-    ["Then click the map: a pin with a note of your own. Ctrl-click on the map does it any time."] =
-        "Danach auf die Karte klicken: eine Markierung mit eigener Notiz. Strg-Klick auf die Karte geht jederzeit.",
     ["This character keeps its own choice for unexplored areas; the others keep the shared one."] =
         "Dieser Charakter behält eine eigene Wahl für unerforschte Gebiete, die anderen die gemeinsame.",
     ["This window follows the BeautifulSkins theme, accent and font."] =
@@ -279,4 +277,36 @@ ns.locales.deDE = {
     ["Zeppelins"] = "Zeppeline",
     ["Zone levels"] = "Zonenstufen",
     ["ZOOM"] = "ZOOM",
+    -- OpenMap 0.8.2 (step 26)
+    ["Friends and guild"] = "Freunde und Gilde",
+    ["Share where you are"] = "Deinen Standort teilen",
+    ["OpenMap asks once, as the map opens, whether you want to share. It stays off unless you say yes."] =
+        "OpenMap fragt einmal beim Öffnen der Karte, ob du teilen möchtest. Ohne dein Ja bleibt es aus.",
+    ["Darkening colour"] = "Farbe der Abdunkelung",
+    ["Default darkening colour"] = "Standardfarbe der Abdunkelung",
+    ["Ctrl-click drops a pin"] = "Strg-Klick setzt eine Markierung",
+    ["With \"Map pins\" off, a Ctrl-click on the map does nothing at all, whatever this switch says."] =
+        "Sind „Markierungen“ aus, tut ein Strg-Klick auf die Karte gar nichts, egal was dieser Schalter sagt.",
+    ["NEW IN OPENMAP"] = "NEU IN OPENMAP",
+    ["Settings of this OpenMap version that BeautifulSkins has not sorted in yet, under OpenMap's own names and descriptions. The gear at the top of the map menu opens OpenMap's own options window with every setting."] =
+        "Einstellungen dieser OpenMap-Version, die BeautifulSkins noch nicht einsortiert hat, mit OpenMaps eigenen Namen und Beschreibungen. Das Zahnrad oben im Kartenmenü öffnet OpenMaps eigenes Optionsfenster mit allen Einstellungen.",
+    ["%s: only in OpenMap's own options window."] = "%s: nur in OpenMaps eigenem Optionsfenster.",
+    ["New in OpenMap"] = "Neu in OpenMap",
+    ["OpenMap's settings that are not sorted in yet."] =
+        "OpenMaps Einstellungen, die noch nicht einsortiert sind.",
+    ["OpenMap's options"] = "OpenMaps Optionen",
+    ["Opens OpenMap's own options window, with every setting under OpenMap's names. This menu stays open."] =
+        "Öffnet OpenMaps eigenes Optionsfenster mit allen Einstellungen unter OpenMaps Namen. Dieses Menü bleibt offen.",
+    ["Then click the map: a pin with a note of your own. A Ctrl-click on the map does the same, unless it is switched off (Pins and quill)."] =
+        "Danach auf die Karte klicken: eine Markierung mit eigener Notiz. Ein Strg-Klick auf die Karte tut dasselbe, außer er ist ausgeschaltet (Markierungen & Feder).",
+    -- OpenMap: size by kind (step 29)
+    ["SIZE BY KIND"] = "GRÖSSE JE ART",
+    ["Each kind's icons at this percentage of OpenMap's icon size (page On the map): 100 % is as big as every other icon. Questie's icons keep the size Questie's options give them."] =
+        "Die Symbole jeder Art mit diesem Anteil an OpenMaps Symbolgröße (Seite Auf der Karte): 100 % ist so groß wie jedes andere Symbol. Questies Symbole behalten die Größe aus Questies Optionen.",
+    ["All back to 100 %"] = "Alle zurück auf 100 %",
+    ["Quests in your log"] = "Quests im Questlog",
+    ["Waypoint"] = "Wegpunkt",
+    ["OpenMap: icon size by kind"] = "OpenMap: Größe je Symbolart",
+    -- OpenMap: Questie's icons drawn with the map open (step 31)
+    ["OpenMap: Questie's icons over the map"] = "OpenMap: Questie-Symbole über der Karte",
 }

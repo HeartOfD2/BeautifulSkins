@@ -178,53 +178,102 @@ function ns.MakeGoal(mapID, mx, my, name)
     }
 end
 
--- Waypoint UI navigates with the native waypoint and SPF hands its bends to it instead of writing the waypoint
--- (SPF Journey/JourneyGuide.lua, WaypointUIHolding): then the native waypoint is SPF's bend all the same.
-local function WaypointUIHolding()
+local function WaypointUINavigation()
     local api = rawget(_G, "WaypointUIAPI")
     local navigation = type(api) == "table" and api.Navigation
-    if type(navigation) ~= "table" or type(navigation.GetUserNavigation) ~= "function" then return false end
+    if type(navigation) == "table" then return navigation end
+end
+
+-- Waypoint UI holds a navigation of its own (shown by /brxp nav; tracked or not).
+local function WaypointUIHolding()
+    local navigation = WaypointUINavigation()
+    if not navigation or type(navigation.GetUserNavigation) ~= "function" then return false end
     return Try(navigation.GetUserNavigation) ~= nil
 end
 
--- Whether SPF wrote the native waypoint at this world point. SPF keeps its last write in
--- ShortestPathForeverCharDB.guideWaypoint and clears it when it stops guiding. When SPF starts the player's own journey
--- it first gives back the waypoint that stood before the guide's (often one at the RestedXP target); until SPF writes
--- its first bend, and for good when the new journey's guide yields or stops, that waypoint is someone else's.
--- Same tolerance as SPF's SameWaypoint: one yard.
-local function SpfOwnsWaypoint(cont, wx, wy)
-    if WaypointUIHolding() then return true end
-    local db = _G.ShortestPathForeverCharDB
+-- Waypoint UI tracks its navigation: SPF then hands its bends to it instead of writing the waypoint (SPF
+-- Journey/JourneyGuide.lua, WaypointUITracking -> HandOverToWaypointUI), so the native waypoint is SPF's bend all the
+-- same. A navigation Waypoint UI only holds, untracked, is the player's: SPF writes its bends itself then.
+local function WaypointUITracking()
+    local navigation = WaypointUINavigation()
+    if not navigation or type(navigation.IsUserNavigationTracked) ~= "function" then return false end
+    return Try(navigation.IsUserNavigationTracked) == true
+end
+
+-- SPF guides a journey: RestedXP's (guide = true) or another one (the player's own, a quest, /way).
+-- Returns journey, guide.
+function SPF.Guiding()
+    local api = SPF.Api()
+    if not api then return false, false end
+    local guide = Try(api.CurrentStop, OWNER) ~= nil
+    return guide or (type(api.Active) == "function" and Try(api.Active) == true), guide
+end
+
+-- The game's waypoint: uiMapID and 0-1 x, y, or nothing when there is none or it cannot be read (on a restricted map
+-- it may come back secret: never indexed or compared then).
+function SPF.ReadWaypoint()
+    local get = C_Map and C_Map.GetUserWaypoint
+    local wp = get and Try(get)
+    if type(wp) ~= "table" or not ns.CanAccess(wp) or not IsNum(wp.uiMapID) then return end
+    local x, y = PosXY(wp.position)
+    if x then return wp.uiMapID, x, y end
+end
+
+-- The game's waypoint is SPF's bend, the next turn of its route: the one check for our arrow, the minimap mark and
+-- OpenMap's marker. SPF keeps its last write in ShortestPathForeverCharDB.guideWaypoint and clears it when it stops
+-- guiding. When SPF starts the player's own journey it first gives back the waypoint that stood before the guide's
+-- (often one at the RestedXP target); until SPF writes its first bend, and for good when the new journey's guide yields
+-- or stops, that waypoint is someone else's. Same tolerance as SPF's SameWaypoint: one yard. While Waypoint UI tracks
+-- its navigation SPF hands each bend to it and clears guideWaypoint (JourneyGuide.lua GuideWaypoint): then the waypoint
+-- is SPF's bend while SPF guides.
+-- Returns uiMapID, x, y, continent, world x, world y of the waypoint, or nothing. guiding: SPF.Guiding() when the
+-- caller knows it already. Runs at 20 Hz: with neither guideWaypoint nor a tracked Waypoint UI it reads nothing else.
+function SPF.Bend(guiding)
+    local db = rawget(_G, "ShortestPathForeverCharDB")
     local saved = type(db) == "table" and db.guideWaypoint
-    if type(saved) ~= "table" then return false end
-    local sc, sx, sy = WorldPos(saved.uiMapID, saved.x, saved.y)
-    if not sc or sc ~= cont then return false end
-    local dx, dy = sx - wx, sy - wy
-    return dx * dx + dy * dy <= 1
+    if type(saved) ~= "table" then saved = nil end
+    local handed
+    if not saved then
+        handed = WaypointUITracking()
+        if not handed then return end
+    end
+    local mapID, x, y = SPF.ReadWaypoint()
+    if not mapID then return end
+    local cont, wx, wy = WorldPos(mapID, x, y)
+    if not cont then return end
+    if saved then
+        local sc, sx, sy = WorldPos(saved.uiMapID, saved.x, saved.y)
+        if sc and sc == cont then
+            local dx, dy = sx - wx, sy - wy
+            if dx * dx + dy * dy <= 1 then return mapID, x, y, cont, wx, wy end
+        end
+        handed = WaypointUITracking()
+        if not handed then return end
+    end
+    if guiding == nil then guiding = SPF.Guiding() end
+    if guiding then return mapID, x, y, cont, wx, wy end
 end
 
 -- SPF's current waypoint (the next bend of its route) while SPF guides a journey and that waypoint is tracked.
 -- guide: the journey is RestedXP's; otherwise it is another one (the player's own, a quest, /way).
 local function SPFWaypoint()
-    local api = SPF.Api()
-    if not api then return end
-    local guide = Try(api.CurrentStop, OWNER) ~= nil
-    local journey = guide or (type(api.Active) == "function" and Try(api.Active)) == true
+    local journey, guide = SPF.Guiding()
     -- "Arrow to the next map marker": without a journey of SPF's, whatever marker is tracked counts
     local anyMarker = ns.db and ns.db.nav and ns.db.nav.nextMarker == true
     if not journey and not anyMarker then return end
     local tracking = C_SuperTrack and C_SuperTrack.IsSuperTrackingUserWaypoint
     if not (tracking and Try(tracking)) then return end
-    local wp = C_Map.GetUserWaypoint and Try(C_Map.GetUserWaypoint)
-    if type(wp) ~= "table" or not ns.CanAccess(wp) then return end
-    local x, y = PosXY(wp.position)
-    if not x then return end
-    local cont, wx, wy = WorldPos(wp.uiMapID, x, y)
-    if not cont then return end
     -- During a journey a waypoint SPF did not set is no bend of its route, also with anyMarker (SPF's own arrow never
     -- follows it either): ns.Target then aims straight at the journey's goal.
-    if journey and not SpfOwnsWaypoint(cont, wx, wy) then return end
-    return cont, wx, wy, guide
+    if journey then
+        local _, _, _, cont, wx, wy = SPF.Bend(true)
+        if cont then return cont, wx, wy, guide end
+        return
+    end
+    local mapID, x, y = SPF.ReadWaypoint()
+    if not mapID then return end
+    local cont, wx, wy = WorldPos(mapID, x, y)
+    if cont then return cont, wx, wy, guide end
 end
 
 local targetCache = { time = -1 }
@@ -361,7 +410,12 @@ local function Write(key, value, remember)
         if ns.db.spfBackup[key] == nil then ns.db.spfBackup[key] = previous end
     end
     local s = SettingObject(key)
-    if s and pcall(s.SetValue, s, value) and SPF.Get(key) == value then return true end -- SPF ran its own refresh
+    if s and pcall(s.SetValue, s, value) then
+        -- SPF ran its own refresh. It may have normalized the value (a slider's step, a clamp): SPF's answer wins.
+        -- Only a setting that left the value unchanged did not reach SPF's DB, and the DB is written below.
+        local now = SPF.Get(key)
+        if now == value or now ~= previous then return true end
+    end
     local db = _G.ShortestPathForeverDB
     if type(db) ~= "table" or db[key] == nil then return false end -- never invent a key this SPF version does not know
     db[key] = value
@@ -429,21 +483,79 @@ local function SyncArrow(nav)
     ApplySpfArrow()
 end
 
--- SPF creates the frame with its first journey: looks twice a second while one runs, and stops once it is found.
-ns.OnLoaded(function()
-    local ticker
-    ticker = C_Timer.NewTicker(SPF_ARROW_LOOK, function()
-        local api = SPF.Api()
-        if not api or not (Try(api.CurrentStop, OWNER) ~= nil or (type(api.Active) == "function" and Try(api.Active))) then return end
-        for _, child in ipairs({ UIParent:GetChildren() }) do
-            if Try(IsSpfArrow, child) then
-                spfArrow = child
-                ApplySpfArrow()
-                ticker:Cancel()
-                return
-            end
+-- ---------------------------------------------------------------------------------------------------------------
+-- Looking for frames SPF makes only for a journey (its arrow, compass and screen pin). A looker runs every `every`
+-- seconds while SPF guides and, with `wanted`, while that says yes; it stops for good once look() returns true. Nothing
+-- runs without SPF or between journeys: SPF's bursts (API.Subscribe; they come a frame after the change) wake the lookers
+-- when guidance starts, and our refresh and load catch an SPF that loaded late or a change of our options.
+local lookers = {}
+local subscribed = false
+
+local function Wanted(looker)
+    return not looker.done and SPF.Guiding() and (looker.wanted == nil or looker.wanted()) and true or false
+end
+
+-- true once the looker is done (look found what it looks for); an error ends it too, reported once.
+local function Look(looker)
+    local ok, found = pcall(looker.look)
+    if not ok then geterrorhandler()(found) end
+    if found == true or not ok then looker.done = true end
+    return looker.done
+end
+
+local function StopLooking(looker)
+    if looker.ticker then
+        looker.ticker:Cancel()
+        looker.ticker = nil
+    end
+end
+
+local function WakeLookers()
+    for _, looker in ipairs(lookers) do
+        if not Wanted(looker) then
+            StopLooking(looker)
+        elseif not looker.ticker and not Look(looker) then
+            looker.ticker = C_Timer.NewTicker(looker.every, function()
+                if not Wanted(looker) or Look(looker) then StopLooking(looker) end
+            end)
         end
-    end)
+    end
+end
+
+-- Once: SPF tells us about every burst. SPF loads first (OptionalDeps); the refresh only catches a late one.
+local function Subscribe()
+    if subscribed then return end
+    local api = SPF.Api()
+    if api and type(api.Subscribe) == "function" and pcall(api.Subscribe, WakeLookers) then subscribed = true end
+end
+
+function SPF.LookWhileGuiding(every, look, wanted)
+    lookers[#lookers + 1] = { every = every, look = look, wanted = wanted }
+end
+
+ns.OnLoaded(function()
+    Subscribe()
+    WakeLookers()
+end)
+
+ns.RegisterRefresh(function()
+    Subscribe()
+    WakeLookers()
+end)
+
+-- SPF creates its arrow with the first journey, and only with "Show direction arrow" on: looked for while our arrow is on
+-- (which keeps that setting on). With our arrow off a frame never found was never touched.
+SPF.LookWhileGuiding(SPF_ARROW_LOOK, function()
+    for _, child in ipairs({ UIParent:GetChildren() }) do
+        if Try(IsSpfArrow, child) then
+            spfArrow = child
+            ApplySpfArrow()
+            return true
+        end
+    end
+    return false
+end, function()
+    return ns.db ~= nil and ns.db.nav.showArrow ~= false
 end)
 
 -- Source SPF/AUTO needs restedxp + journey on; source RXP gives those back.
@@ -571,16 +683,13 @@ function ns.NavDebug()
     say(("source: configured %s  effective %s  actual %s"):format(S(configured), S(effective), S(t and t.source or "none")))
     say(("SPF: loaded %s  version %s  API %s  CurrentStop(%s) %s  waypoint tracked %s"):format(
         S(SPF.Loaded()), S(SPF.Version()), S(api ~= nil), OWNER, S(stop), S(tracking)))
-    local wp = C_Map.GetUserWaypoint and Try(C_Map.GetUserWaypoint)
-    local wx, wy, wc, wwx, wwy
-    if type(wp) == "table" and ns.CanAccess(wp) then wx, wy = PosXY(wp.position) end
-    if wx then wc, wwx, wwy = WorldPos(wp.uiMapID, wx, wy) end
+    local wmap, wx, wy = SPF.ReadWaypoint()
     local wuiDB = WuiDB()
     say(("Waypoint UI: RestedXP support %s  switched off by us %s"):format(
         S(wuiDB and wuiDB[WUI_KEY]), S(ns.db and ns.db.wuiBackup == true)))
-    say(("waypoint: %s  set by SPF %s  Waypoint UI holding %s"):format(
-        wx and ("map %s %s / %s"):format(S(wp.uiMapID), Num(wx * 100, 2), Num(wy * 100, 2)) or "none",
-        S(wc and SpfOwnsWaypoint(wc, wwx, wwy) or false), S(WaypointUIHolding())))
+    say(("waypoint: %s  SPF's bend %s  Waypoint UI holding %s  tracked %s"):format(
+        wmap and ("map %s %s / %s"):format(S(wmap), Num(wx * 100, 2), Num(wy * 100, 2)) or "none",
+        S(SPF.Bend() ~= nil), S(WaypointUIHolding()), S(WaypointUITracking())))
     say(("SPF arrow: setting %s  frame found %s  shown %s  alpha %s  arrow part alpha %s"):format(
         S(SPF.Get("arrow")), S(spfArrow ~= nil), S(spfArrow and spfArrow:IsShown()),
         Num(spfArrow and spfArrow:GetAlpha(), 2), Num(spfArrow and spfArrow.Arrow:GetAlpha(), 2)))

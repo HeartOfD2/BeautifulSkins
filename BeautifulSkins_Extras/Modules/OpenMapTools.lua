@@ -7,7 +7,7 @@
 --              journey runs).
 --   Quill off: drawing ends at once (on the map, on a pin, on a dungeon's map), your drawings stay hidden, their
 --              buttons leave the map. Drawing for "Report a problem" stays: that is another tool.
--- Hook points (OpenMap v0.7.5-beta): mod.SetPinMode, mod:TogglePins, mod:ToggleSketch (post-hooks),
+-- Hook points (OpenMap v0.8.2, checked by tools/openmap_contract.py): mod.SetPinMode, mod:TogglePins, mod:ToggleSketch (post-hooks),
 -- mod.db.favorites / pinsHidden / pinsShared / sketchShown, mod.SetPinsHidden, mod.RefreshSketch, mod:RefreshPanel.
 -- One exception to "post-hooks only" (07.11.2026, for the user's wish that Ctrl-click does nothing): mod.DropWaypoint (Ctrl-click and the pin mode's
 -- click, WorldMap.lua DropAtCursor) gets a wrapper that stops it while pins are off. A post-hook comes too late: OpenMap
@@ -54,11 +54,45 @@ local function Call(fn, ...)
     if not ok then ns.Modules.Fail("openmapTools", err) end
 end
 
--- The map buttons (favourites) of a tool: taken off and remembered, or put back in their old order.
+-- The map buttons (favourites) of a tool: taken off and remembered, or put back where they were. saved.order keeps the
+-- row of buttons as it stood before the first tool left (both tools may be off, and come back in any order); a button
+-- comes back after the nearest one that stood before it and is there again. Lists saved before the order existed come
+-- back at the end, as before.
+local BUTTON_STORES = { "pinButtons", "quillButtons" }
+
+local function IndexOf(list, value)
+    for i, v in ipairs(list) do
+        if v == value then return i end
+    end
+end
+
+-- The row before anything is taken; a button the player added since joins it after the one before it.
+local function RememberOrder(saved, favs)
+    local order = saved.order
+    if type(order) ~= "table" then
+        order = {}
+        for i, id in ipairs(favs) do order[i] = id end
+        saved.order = order
+        return
+    end
+    for i, id in ipairs(favs) do
+        if not IndexOf(order, id) then
+            local before = i > 1 and IndexOf(order, favs[i - 1])
+            table.insert(order, before and before + 1 or 1, id)
+        end
+    end
+end
+
 local function TakeButtons(mod, ids, store)
     local favs = ns.T(mod.db.favorites)
     if not favs then return end
     local saved = Settings().saved
+    local taking = false
+    for _, id in ipairs(favs) do
+        if ids[id] then taking = true end
+    end
+    if not taking then return end
+    RememberOrder(saved, favs)
     saved[store] = saved[store] or {}
     for i = #favs, 1, -1 do
         if ids[favs[i]] then
@@ -68,17 +102,31 @@ local function TakeButtons(mod, ids, store)
     end
 end
 
+-- Where a returning button goes: after the nearest button that stood before it in the remembered row and is there now.
+local function Slot(favs, order, id)
+    local at = type(order) == "table" and IndexOf(order, id)
+    if not at then return #favs + 1 end
+    for k = at - 1, 1, -1 do
+        local present = IndexOf(favs, order[k])
+        if present then return present + 1 end
+    end
+    return 1
+end
+
 local function GiveButtons(mod, store)
     local favs = ns.T(mod.db.favorites)
     local saved = Settings().saved
     local list = saved[store]
     saved[store] = nil
-    if not (favs and type(list) == "table") then return end
-    for _, id in ipairs(list) do
-        local present = false
-        for _, f in ipairs(favs) do if f == id then present = true end end
-        if not present then favs[#favs + 1] = id end
+    if favs and type(list) == "table" then
+        for _, id in ipairs(list) do
+            if not IndexOf(favs, id) then table.insert(favs, Slot(favs, saved.order, id), id) end
+        end
     end
+    for _, other in ipairs(BUTTON_STORES) do
+        if saved[other] ~= nil then return end
+    end
+    saved.order = nil -- every button is back
 end
 
 ---------------------------------------------------------------------------

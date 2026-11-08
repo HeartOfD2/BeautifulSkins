@@ -36,7 +36,7 @@ local THEME_NAME = "EUIRestedXPSkin" -- the former addon's name, kept: RestedXP 
 local S = {
     hooked = false, applying = false, skinned = false, reported = false,
     layoutKey = nil, width = nil, widthBefore = nil, applies = 0, hookCount = 0,
-    sig = nil, dirty = true, skipped = { frame = 0, refresh = 0 }, reruns = 0, go = nil,
+    sig = nil, dirty = true, skipped = { frame = 0, refresh = 0, list = 0 }, reruns = 0, go = nil, listBuilds = 0,
     calls = { visuals = 0, text = 0, frame = 0, render = 0, step = 0 },
     -- upcoming list, hiding, v2 and target boxes
     growUp = true, rowsDirty = true, listRows = 0, listHeight = 0, listShift = 0, listProgress = nil, heightBefore = nil, lastProgress = nil,
@@ -848,18 +848,30 @@ end
 -- rebuild resets whatever is done to them, and its heights and scroll positions are private. We read what RXP has
 -- already worked out for each step (`step.text`) and list `guide.upcoming` steps, one line per goal (scrollable).
 
--- The goals of a step, one line each (RXP joins them with a line break in step.text), at most MAX_LINES.
-local function Lines(text)
-    text = text:gsub("\\n", " ") -- a literal backslash-n inside one goal is a space
-    local lines = {}
-    for line in text:gmatch("[^\n]+") do
+-- The goals of a step, one line each (RXP joins them with a line break in step.text), at most MAX_LINES. Worked out
+-- once per text of a step: RXP builds step.text anew on every UpdateFrame, and the same text is the same string.
+local linesOf = setmetatable({}, { __mode = "k" }) -- step -> { goal lines..., text = the step.text they came from }
+
+local function Lines(step)
+    local text = step.text
+    local lines = linesOf[step]
+    if lines and lines.text == text then return lines end
+    lines = { text = text }
+    for line in text:gsub("\\n", " "):gmatch("[^\n]+") do -- a literal backslash-n inside one goal is a space
         line = line:match("^%s*(.-)%s*$")
         if line ~= "" then
             lines[#lines + 1] = line
             if #lines >= MAX_LINES then break end
         end
     end
+    linesOf[step] = lines
     return lines
+end
+
+local function LinesCached() -- /brxp guide
+    local n = 0
+    for _ in pairs(linesOf) do n = n + 1 end
+    return n
 end
 
 -- Right click or double click on a row jumps to that step: RXP's own "Go to step n", without its menu.
@@ -906,14 +918,17 @@ local function MakeRow(list, i)
     local d = Data(row)
     d.hl = row:CreateTexture(nil, "BACKGROUND")
     d.hl:SetAllPoints(row)
+    d.hl:SetColorTexture(1, 1, 1, ROW_HOVER_A)
     d.hl:Hide()
     d.sep = row:CreateTexture(nil, "ARTWORK")
     d.sep:SetHeight(1)
     d.sep:SetPoint("BOTTOMLEFT", row, "BOTTOMLEFT", 0, 0)
     d.sep:SetPoint("BOTTOMRIGHT", row, "BOTTOMRIGHT", 0, 0)
+    d.sep:SetColorTexture(1, 1, 1, ROW_SEPARATOR_A)
     d.lines = {}
     row.number = row:CreateFontString(nil, "OVERLAY")
     row.number:SetFont(STANDARD_TEXT_FONT, SIZE_ROW_NUMBER, "")
+    row.number:SetTextColor(1, 1, 1, ROW_NUMBER_A)
     row.number:SetPoint("TOPRIGHT", row, "TOPRIGHT", -12, -5)
     row.number:SetJustifyH("RIGHT")
     row.lines = {}
@@ -929,6 +944,7 @@ end
 local function MakeLine(row, k)
     local line = row:CreateFontString(nil, "OVERLAY")
     line:SetFont(STANDARD_TEXT_FONT, SIZE_ROW, "")
+    line:SetTextColor(1, 1, 1, ROW_TEXT_A)
     line:SetPoint("TOPLEFT", row, "TOPLEFT", 12, -5 - (k - 1) * LINE_H)
     line:SetPoint("TOPRIGHT", row, "TOPRIGHT", -44, -5 - (k - 1) * LINE_H)
     line:SetHeight(LINE_H)
@@ -945,9 +961,18 @@ local function Listable(step, level)
         and not (step.hidewindow or step.hidetip or step.optional or step.tip) and (tonumber(step.level) or 0) <= level
 end
 
+-- What the rows showed when they were last drawn: per row the step's index, its text and whether it is done, plus the
+-- guide, its steps and the run's context (`cur`, a new table per skin run: fonts, upcoming, step numbers).
+local drawn = { n = 0, index = {}, text = {}, past = {}, guide = nil, steps = nil, c = nil }
+local NO_SKIPS = {}
+
 -- Rows: the first one is the next step after the current one; the mouse wheel moves the window over the whole guide,
 -- backwards into the steps already done as well (S.listShift counts listed steps, negative = earlier). A new current
 -- step puts the list back to the next step.
+-- RXP runs UpdateFrame several times per tick of its 75 ms loop (RXPGuides.lua: one call per step in batches), and each
+-- one asks for this list. So the steps to show are worked out first, without making a table or a string, and compared
+-- with what the rows show; only a change (guide, progress, wheel, upcoming, options, level, a step's text or its done
+-- state) draws the rows again. Returns true when it drew.
 local function SkinList(f, c)
     local list = EnsureList(f)
     local rxp = Rxp()
@@ -956,9 +981,10 @@ local function SkinList(f, c)
     local level = UnitLevel("player")
     if type(level) ~= "number" then level = 0 end
     local skips = _G.RXPCData
-    skips = type(skips) == "table" and type(skips.stepSkip) == "table" and skips.stepSkip or {}
-    local shown, total, previous = 0, 0, nil
-    local steps = type(guide) == "table" and type(guide.steps) == "table" and guide.steps
+    skips = type(skips) == "table" and type(skips.stepSkip) == "table" and skips.stepSkip or NO_SKIPS
+    local steps = type(guide) == "table" and type(guide.steps) == "table" and guide.steps or nil
+    local changed = drawn.c ~= c or drawn.guide ~= guide or drawn.steps ~= steps
+    local shown = 0
     if c.upcoming > 0 and progress and steps and not guide.hidewindow then
         if S.listProgress ~= progress then
             S.listProgress = progress
@@ -987,61 +1013,75 @@ local function SkinList(f, c)
             local step = steps[i]
             if Listable(step, level) then
                 shown = shown + 1
-                local row = list.rows[shown] or MakeRow(list, shown)
-                local d = Data(row)
-                d.index = i
-                local lines = Lines(step.text)
-                local height = ROW_PAD + math.max(1, #lines) * LINE_H
-                row:ClearAllPoints()
-                if previous then
-                    row:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, 0)
-                    row:SetPoint("TOPRIGHT", previous, "BOTTOMRIGHT", 0, 0)
-                else
-                    row:SetPoint("TOPLEFT", list, "TOPLEFT", 0, 0)
-                    row:SetPoint("TOPRIGHT", list, "TOPRIGHT", 0, 0)
-                end
-                row:SetHeight(height)
-                total = total + height
-                for k = 1, MAX_LINES do
-                    local text = row.lines[k] or (lines[k] and MakeLine(row, k))
-                    if text then
-                        if lines[k] then
-                            SetFontFor(text, c.path, c.sRow, c.flags)
-                            text:SetTextColor(1, 1, 1, ROW_TEXT_A)
-                            if d.lines[k] ~= lines[k] then
-                                d.lines[k] = lines[k]
-                                text:SetText(lines[k])
-                            end
-                            text:Show()
-                        else
-                            d.lines[k] = nil
-                            text:Hide()
-                        end
-                    end
-                end
-                SetFontFor(row.number, c.path, SIZE_ROW_NUMBER, c.flags)
-                row.number:SetTextColor(1, 1, 1, ROW_NUMBER_A)
-                local number = c.stepNumbers and tostring(i) or ""
-                if d.number ~= number then
-                    d.number = number
-                    row.number:SetText(number)
-                end
-                d.sep:SetColorTexture(1, 1, 1, ROW_SEPARATOR_A)
-                d.hl:SetColorTexture(1, 1, 1, ROW_HOVER_A)
                 -- steps already done or passed are dimmed, like RXP's list does
-                local past = i <= progress or step.completed or skips[i]
-                row:SetAlpha(past and 0.55 or 1)
-                row:Show()
-                previous = row
+                local past = (i <= progress or step.completed or skips[i]) and true or false
+                if drawn.index[shown] ~= i or drawn.text[shown] ~= step.text or drawn.past[shown] ~= past then
+                    drawn.index[shown], drawn.text[shown], drawn.past[shown] = i, step.text, past
+                    changed = true
+                end
             end
             i = i + 1
         end
+    end
+    if drawn.n ~= shown then changed = true end
+    if not changed then
+        S.skipped.list = S.skipped.list + 1
+        return false
+    end
+    drawn.n, drawn.guide, drawn.steps, drawn.c = shown, guide, steps, c
+    S.listBuilds = S.listBuilds + 1
+
+    local total, previous = 0, nil
+    for r = 1, shown do
+        local i = drawn.index[r]
+        local step = steps[i]
+        local row = list.rows[r] or MakeRow(list, r)
+        local d = Data(row)
+        d.index = i
+        local lines = Lines(step)
+        local height = ROW_PAD + math.max(1, #lines) * LINE_H
+        row:ClearAllPoints()
+        if previous then
+            row:SetPoint("TOPLEFT", previous, "BOTTOMLEFT", 0, 0)
+            row:SetPoint("TOPRIGHT", previous, "BOTTOMRIGHT", 0, 0)
+        else
+            row:SetPoint("TOPLEFT", list, "TOPLEFT", 0, 0)
+            row:SetPoint("TOPRIGHT", list, "TOPRIGHT", 0, 0)
+        end
+        row:SetHeight(height)
+        total = total + height
+        for k = 1, MAX_LINES do
+            local text = row.lines[k] or (lines[k] and MakeLine(row, k))
+            if text then
+                if lines[k] then
+                    SetFontFor(text, c.path, c.sRow, c.flags)
+                    if d.lines[k] ~= lines[k] then
+                        d.lines[k] = lines[k]
+                        text:SetText(lines[k])
+                    end
+                    text:Show()
+                else
+                    d.lines[k] = nil
+                    text:Hide()
+                end
+            end
+        end
+        SetFontFor(row.number, c.path, SIZE_ROW_NUMBER, c.flags)
+        local number = c.stepNumbers and tostring(i) or ""
+        if d.number ~= number then
+            d.number = number
+            row.number:SetText(number)
+        end
+        row:SetAlpha(drawn.past[r] and 0.55 or 1)
+        row:Show()
+        previous = row
     end
     for k = shown + 1, #list.rows do list.rows[k]:Hide() end
     list:SetHeight(math.max(1, total))
     S.listHeight = total
     list:SetShown(shown > 0)
     S.listRows = shown
+    return true
 end
 
 -- RXP's scrolling list stays hidden and click-through (its rows are mouse-enabled again after every guide load).
@@ -1179,8 +1219,9 @@ local function FitHeight(f, c)
 end
 
 -- RXP rebuilds step.text after our run (LoadGuide: SetStep, then UpdateFrame) and the mouse wheel moves the list: redraw
--- the rows and fit the window to them, cheaply. Not while the size grip is dragged: UpdateFrame is RXP's OnUpdate then
---, the rows follow the width through their anchors and the mouse-up SetStep redraws.
+-- the rows when what they show changed (SkinList compares) and fit the window to them. FitHeight runs every time: it
+-- only reads the height and returns while it fits. Not while the size grip is dragged: UpdateFrame is RXP's OnUpdate
+-- then, the rows follow the width through their anchors and the mouse-up SetStep redraws.
 function RefreshList()
     local f = GetFrames()
     if f and cur and S.skinned and not f:GetScript("OnUpdate") then
@@ -1193,6 +1234,7 @@ end
 local function ReleaseList(f)
     local d = data[f]
     if d and d.list then d.list:Hide() end
+    drawn.c = nil -- the next skin run draws the rows again
     SetRxpList(f, false, true)
     local height = S.heightBefore
     S.heightBefore = nil
@@ -1809,7 +1851,7 @@ end
 -- kind "frame" (BottomFrame.UpdateFrame, which RXP runs as OnUpdate every frame while the window is resized, 25 000+
 -- calls) and "refresh" (EUI or an option asked) do not mean that RXP rewrote our work: they only run when
 -- the skin's inputs changed. RXP's own redraws (visuals, text, render, step) always run. A "frame" call additionally
--- puts the hidden upcoming rows back to alpha 0, which a list rebuild resets.
+-- lets our list check whether a step it shows got a new text (RefreshList; it draws only on a change).
 local MAX_RUNS = 3
 local REDRAW = { visuals = true, text = true } -- hooks after RXP rewrote backdrops or step layout
 local DIRTIES_ROWS = { visuals = true, render = true, step = true } -- the list of rows may have been rebuilt or restyled
@@ -1933,7 +1975,8 @@ local function ResetPosition()
     return true
 end
 
-ns.GuideSkin = { state = S, Request = Request, UpdateVisibility = UpdateVisibility, ResetPosition = ResetPosition }
+ns.GuideSkin = { state = S, Request = Request, UpdateVisibility = UpdateVisibility, ResetPosition = ResetPosition,
+    RefreshList = RefreshList, OnWheel = OnWheel }
 
 ns.OnLoaded(function()
     -- The width used to default to 320 and was applied on every start. It is now only applied when the user sets it
@@ -2078,6 +2121,7 @@ function ns.GuideCommand(arg)
             or "-"))
     local item, target = BoxFrames()
     local g = ns.db.guide
+    ns.Say(("guide: list drawn %d, unchanged %d (lines cached for %d steps)"):format(S.listBuilds, S.skipped.list, LinesCached()))
     ns.Say(("guide: upcoming %s (list rows %d, shifted %d)  animations %s  window hidden %s (combat %s instance %s)  boxes skinned %d (item %s target %s, hooks %s/%s) lock %s"):format(
         tostring(g.upcoming), S.listRows, S.listShift, tostring(g.animations),
         tostring(S.hidden), tostring(g.hideCombat), tostring(g.hideInstance), S.boxes, item and "yes" or "no",

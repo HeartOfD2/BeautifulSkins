@@ -1,8 +1,10 @@
--- OpenMap's settings, sorted anew: eight pages of switches, sliders and choices instead of OpenMap's three tabs of
+-- OpenMap's settings, sorted anew: pages of switches, sliders and choices instead of OpenMap's three tabs of
 -- ticks. Drawn by the host in our options window (and EllesmereUI's) and by our map menu (Modules\OpenMapMenu.lua).
 -- Values go through OpenMap's own option table (mod:Options(): get, set, range, values, disabled, description), so its
 -- side effects run as in its own menu; a setting OpenMap no longer has simply drops out. Labels are ours, the
--- descriptions in the tooltips are OpenMap's (in OpenMap's translation).
+-- descriptions in the tooltips are OpenMap's (in OpenMap's translation). A setting a new OpenMap version brings and
+-- none of our pages shows comes up by itself on the page "New in OpenMap", under OpenMap's own name, until it is sorted
+-- in here (tools/openmap_contract.py lists such settings offline; docs/openmap-update.md).
 local _, ns = ...
 local L = ns.L
 
@@ -37,13 +39,40 @@ local function Round(v)
     return math.floor(v * 1000 + 0.5) / 1000
 end
 
--- A row from OpenMap's option `key` (nil when OpenMap has no such option). extra: text, tip (added after OpenMap's
--- description), enabled (combined with OpenMap's own disabled).
+-- OpenMap options our rows below do not show through Opt, with the reason: shown by another row of ours, or left out on
+-- purpose. Neither they nor the keys Opt builds come up on the page "New in OpenMap". tools/openmap_contract.py reads
+-- this table: one entry per line, key = "reason".
+OMS.ELSEWHERE = {
+    news = "the quick button What's new in the map menu (OpenMap_Binding news)",
+    resetSliders = "our button Every slider to its default (Pins and quill), which asks first",
+    sketchShown = "our switch Show your drawings (Pins and quill), tied to our quill switch",
+}
+
+-- The keys of OpenMap's options our pages show: every Opt call notes its key, also for an option OpenMap lacks or hides
+-- here. NewKeys builds every page first, so the list is whole when it is read.
+local used = {}
+
+-- AceConfig's hidden: true or a function of info.
+local function Hidden(o, info)
+    local hidden = o.hidden
+    if type(hidden) == "function" then
+        local ok, v = pcall(hidden, info)
+        return ok and v and true or false
+    end
+    return hidden == true
+end
+
+-- A row from OpenMap's option `key` (nil when OpenMap has no such option or hides it). extra: text, tip (added after
+-- OpenMap's description), enabled (combined with OpenMap's own disabled), when (false: not shown here, the key still
+-- counts as ours). Types: toggle, range, select, color, execute (a button; asks first when OpenMap's option says so).
 local function Opt(opts, key, extra)
-    local o = opts[key]
-    if type(o) ~= "table" or o.hidden == true or type(o.get) ~= "function" then return nil end
+    used[key] = true
     extra = extra or {}
-    local info = { key }
+    if extra.when == false then return nil end
+    local o = opts[key]
+    if type(o) ~= "table" then return nil end
+    local info = { key, type = o.type, option = o } -- (as AceConfig's info: OpenMap's ns.Bind reads info.type for colours)
+    if Hidden(o, info) then return nil end
     local tip = Text(o.desc, info)
     if extra.tip then tip = tip and (tip .. "\n\n" .. extra.tip) or extra.tip end
     local row = { text = extra.text or Text(o.name, info) or key, tip = tip, refresh = true }
@@ -57,13 +86,14 @@ local function Opt(opts, key, extra)
         end
         return own == nil or own()
     end
+    local readable = type(o.get) == "function" and type(o.set) == "function"
     local function Get() local ok, v = pcall(o.get, info) return ok and v or nil end
     local function Set(...) o.set(info, ...) Notify() end
-    if o.type == "toggle" and type(o.set) == "function" then
+    if o.type == "toggle" and readable then
         row.type = "toggle"
         row.get = function() return Get() and true or false end
         row.set = function(v) Set(v and true or false) end
-    elseif o.type == "range" and type(o.set) == "function" then
+    elseif o.type == "range" and readable and type(o.min) == "number" and type(o.max) == "number" then
         local f = o.isPercent and 100 or 1
         row.type = "slider"
         row.min, row.max = o.min * f, o.max * f
@@ -71,7 +101,28 @@ local function Opt(opts, key, extra)
         row.get = function() return (tonumber(Get()) or o.min) * f end
         row.set = function(v) Set(Round(v / f)) end
         if extra.zeroText then row.tip = (row.tip and (row.tip .. "\n\n") or "") .. extra.zeroText end
-    elseif o.type == "select" and type(o.set) == "function" then
+    elseif o.type == "color" and readable then
+        row.type = "color"
+        row.get = function()
+            local ok, r, g, b = pcall(o.get, info)
+            if ok and type(r) == "number" and type(g) == "number" and type(b) == "number" then return r, g, b end
+            return 1, 1, 1
+        end
+        row.set = function(r, g, b) Set(r, g, b) end
+    elseif o.type == "execute" and type(o.func) == "function" then
+        row.type = "button"
+        local function Run() o.func(info) Notify() end
+        row.onClick = function()
+            local confirm = o.confirm
+            if type(confirm) == "function" then
+                local ok, v = pcall(confirm, info)
+                confirm = ok and v or nil
+            end
+            if not confirm then return Run() end
+            local text = type(confirm) == "string" and confirm or Text(o.confirmText, info) or (row.text .. "?")
+            ns.host.Confirm("openmap_" .. key, text, Run)
+        end
+    elseif o.type == "select" and readable then
         row.type = "dropdown"
         row.values = function()
             local values = o.values
@@ -130,6 +181,29 @@ local function NoMod()
     return { { type = "text", text = L["OpenMap is not loaded."] } }
 end
 
+-- A slider for the size of one kind of OpenMap's icons (Modules\OpenMapSizes.lua), in percent of OpenMap's icon size;
+-- nil while the sizes do not work (OpenMap changed beyond recognition).
+local function SizeRow(key, text, enabled)
+    local sizes = ns.OpenMapSizes
+    if not (sizes and sizes.Available()) then return nil end
+    return { type = "slider", text = text .. " (%)", enabled = enabled,
+        min = sizes.MIN, max = sizes.MAX, step = sizes.STEP,
+        get = function() return math.floor(sizes.Get(key) * 100 + 0.5) end,
+        set = function(v) sizes.Set(key, v / 100) end }
+end
+
+-- The section of size sliders (header, what they do, the sliders, a button back to 100 %); nothing without sliders.
+local function SizeSection(rows, keys, ...)
+    local list = {}
+    Add(list, ...)
+    if #list == 0 then return end
+    rows[#rows + 1] = { type = "header", text = L["SIZE BY KIND"] }
+    rows[#rows + 1] = { type = "text", text = L["Each kind's icons at this percentage of OpenMap's icon size (page On the map): 100 % is as big as every other icon. Questie's icons keep the size Questie's options give them."] }
+    for _, row in ipairs(list) do rows[#rows + 1] = row end
+    rows[#rows + 1] = { type = "button", text = L["All back to 100 %"], refresh = true,
+        onClick = function() ns.OpenMapSizes.Reset(keys()) Notify() end }
+end
+
 ---------------------------------------------------------------------------
 -- Pages
 ---------------------------------------------------------------------------
@@ -172,11 +246,26 @@ local function MapRows()
         QuestieRow())
     Section(rows, L["YOU AND YOUR GROUP"],
         Opt(opts, "playerArrow", { text = L["Your arrow"] }),
-        Opt(opts, "group", { text = L["Party and raid members"] }))
+        Opt(opts, "group", { text = L["Party and raid members"] }),
+        Opt(opts, "friends", { text = L["Friends and guild"] }),
+        Opt(opts, "friendsShare", { text = L["Share where you are"],
+            tip = L["OpenMap asks once, as the map opens, whether you want to share. It stays off unless you say yes."] }))
     Section(rows, L["ICONS"],
         Opt(opts, "iconScale", { text = L["Icon size (%)"] }),
         Opt(opts, "iconsFrom", { text = L["Show icons from zoom"], zeroText = L["0 = automatic: each kind from its own zoom."] }),
         Opt(opts, "zoomHidePins", { text = L["Rest icons while zooming"], tip = L["Improves performance."] }))
+    local sizes = ns.OpenMapSizes
+    SizeSection(rows, function() return sizes.MapKeys() end,
+        SizeRow("dungeons", L["Dungeons and raids"]),
+        SizeRow("flight", L["Flight masters"]),
+        SizeRow("boats", L["Boats"]),
+        SizeRow("zeppelins", L["Zeppelins"]),
+        SizeRow("quests", L["Quests in your log"]),
+        SizeRow("group", L["Party and raid members"]),
+        SizeRow("friends", L["Friends and guild"]),
+        SizeRow("userpins", L["Map pins"], ns.OpenMap.PinsOn),
+        SizeRow("notes", L["Map notes"]),
+        SizeRow("waypoint", L["Waypoint"]))
     return rows
 end
 
@@ -187,12 +276,12 @@ local function DungeonRows()
     local function Has(fn) return type(mod[fn]) == "function" and mod[fn]() and true or false end
     Section(rows, L["ON THE WORLD MAP"],
         Opt(opts, "dungeonLevels", { text = L["Level ranges under the entrances"] }),
-        Has("HasDungeonJournal") and Opt(opts, "entranceClick", { text = L["A click on an entrance opens"] }) or nil)
+        Opt(opts, "entranceClick", { text = L["A click on an entrance opens"], when = Has("HasDungeonJournal") }))
     Section(rows, L["DUNGEON MAPS"],
         Opt(opts, "dungeonBosses", { text = L["Bosses"] }),
-        Has("DungeonQuestSource") and Opt(opts, "dungeonQuests", { text = L["Quests tab"] }) or nil,
-        Has("DungeonQuestSource") and Opt(opts, "questSource", { text = L["Quests come from"],
-            enabled = function() return mod.db.dungeonQuests and true or false end }) or nil)
+        Opt(opts, "dungeonQuests", { text = L["Quests tab"], when = Has("DungeonQuestSource") }),
+        Opt(opts, "questSource", { text = L["Quests come from"], when = Has("DungeonQuestSource"),
+            enabled = function() return mod.db.dungeonQuests and true or false end }))
     return rows
 end
 
@@ -233,6 +322,14 @@ local function TownsfolkRows()
     end
     rows[#rows + 1] = { type = "button", text = L["Show all"], onClick = function() All(true) end }
     rows[#rows + 1] = { type = "button", text = L["Hide all"], onClick = function() All(false) end }
+    local sliders = {}
+    for _, kind in ipairs(kinds) do
+        if type(kind) == "table" and type(kind.key) == "string" then
+            sliders[#sliders + 1] = SizeRow("tf_" .. kind.key, tostring(kind.name or kind.key),
+                function() return folk[kind.key] and true or false end)
+        end
+    end
+    SizeSection(rows, function() return ns.OpenMapSizes.TownsfolkKeys() end, unpack(sliders))
     return rows
 end
 
@@ -248,6 +345,8 @@ local function LookRows()
     Section(rows, L["UNEXPLORED AREAS"],
         Opt(opts, "unexplored", { text = L["Unexplored areas"] }),
         Opt(opts, "darkening", { text = L["Darkening (%)"] }),
+        Opt(opts, "darkenColor", { text = L["Darkening colour"] }),
+        Opt(opts, "darkenColorReset", { text = L["Default darkening colour"] }),
         own)
     Section(rows, L["COLOURS"],
         Opt(opts, "colorMatch", { text = L["Colour matching between zones (%)"] }),
@@ -343,9 +442,14 @@ local function WindowRows()
                 tip = L["Language of BeautifulSkins and of this window. OpenMap's own descriptions in the tooltips, townsfolk and place names follow the game's language."] },
             { type = "button", text = L["Reload now"], onClick = function() if type(ReloadUI) == "function" then ReloadUI() end end })
     end
-    local reset = type(mod.ResetWindow) == "function" and { type = "button", text = L["Reset size and place"],
-        tip = L["The windowed map's size and place back to Blizzard's."],
-        onClick = function() mod:ResetWindow() Notify() end } or nil
+    -- (OpenMap's own button since 0.8.0, greyed while Move Any sizes and places the map; before, mod:ResetWindow)
+    local reset = Opt(opts, "resetWindow", { text = L["Reset size and place"],
+        tip = L["The windowed map's size and place back to Blizzard's."] })
+    if not (reset or opts.resetWindow) and type(mod.ResetWindow) == "function" then
+        reset = { type = "button", text = L["Reset size and place"],
+            tip = L["The windowed map's size and place back to Blizzard's."],
+            onClick = function() mod:ResetWindow() Notify() end }
+    end
     Section(rows, L["MAP WINDOW"],
         Opt(opts, "windowScale", { text = L["Map size (%)"] }),
         Opt(opts, "fullWidth", { text = L["Full-screen map fills the width"] }),
@@ -379,7 +483,11 @@ local function ToolRows()
             get = tools.PinsOn, set = tools.SetPins },
     }
     if mod then
-        Add(rows, Opt(Options(), "pinsShared", { text = L["Pins others share with you"], enabled = tools.PinsOn }))
+        local opts = Options()
+        Add(rows,
+            Opt(opts, "ctrlClickPin", { text = L["Ctrl-click drops a pin"], enabled = tools.PinsOn,
+                tip = L["With \"Map pins\" off, a Ctrl-click on the map does nothing at all, whatever this switch says."] }),
+            Opt(opts, "pinsShared", { text = L["Pins others share with you"], enabled = tools.PinsOn }))
     end
     rows[#rows + 1] = { type = "header", text = L["QUILL"] }
     rows[#rows + 1] = { type = "toggle", text = L["Quill"], refresh = true,
@@ -445,9 +553,9 @@ function OMS.HasAddonRows()
     return #AddonRows() > 0
 end
 
--- The pages, in sidebar order. key: unique over all packs; icon: for the map menu's sidebar.
-function OMS.Pages()
-    local pages = {
+-- Our pages of OpenMap's settings (the ones that sort them in).
+local function SortedPages()
+    return {
         { key = "openmap.map", label = L["On the map"], desc = L["Places, quests, your group and the icons."], rows = MapRows },
         { key = "openmap.dungeons", label = L["Dungeons"], desc = L["Entrances on the map and the dungeon maps."], rows = DungeonRows },
         { key = "openmap.townsfolk", label = L["Townsfolk"], desc = L["Vendors, trainers, innkeepers and more in towns."], rows = TownsfolkRows },
@@ -456,6 +564,64 @@ function OMS.Pages()
         { key = "openmap.window", label = L["Window and buttons"], desc = L["Map window, behaviour and the buttons on the map."], rows = WindowRows },
         { key = "openmap.tools", label = L["Pins and quill"], desc = L["Switch OpenMap's tools on or off completely."], rows = ToolRows },
     }
+end
+
+-- AceConfig types that are no setting of their own.
+local NOT_SETTINGS = { header = true, description = true, group = true }
+
+-- OpenMap's settings that none of our pages shows and ELSEWHERE does not name (visible ones only), in OpenMap's order.
+local function NewKeys(opts)
+    used = {}
+    for _, page in ipairs(SortedPages()) do pcall(page.rows) end
+    local keys = {}
+    for key, o in pairs(opts) do
+        if type(key) == "string" and type(o) == "table" and not used[key] and not OMS.ELSEWHERE[key]
+            and not NOT_SETTINGS[o.type] and not Hidden(o, { key, type = o.type, option = o }) then
+            keys[#keys + 1] = key
+        end
+    end
+    table.sort(keys, function(a, b)
+        local oa, ob = tonumber(opts[a].order) or 1000, tonumber(opts[b].order) or 1000
+        if oa ~= ob then return oa < ob end
+        return a < b
+    end)
+    return keys
+end
+
+function OMS.NewKeys()
+    if not Mod() then return {} end
+    return NewKeys(Options())
+end
+
+-- OpenMap's new settings under its own names and descriptions, until we sort them in (one we cannot draw: a line that
+-- points to OpenMap's own window).
+local function NewRows()
+    if not Mod() then return NoMod() end
+    local opts = Options()
+    local keys = NewKeys(opts)
+    local rows = {
+        { type = "header", text = L["NEW IN OPENMAP"] },
+        { type = "text", text = L["Settings of this OpenMap version that BeautifulSkins has not sorted in yet, under OpenMap's own names and descriptions. The gear at the top of the map menu opens OpenMap's own options window with every setting."] },
+    }
+    for _, key in ipairs(keys) do
+        local row = Opt(opts, key)
+        if not row then
+            local name = Text(opts[key].name, { key }) or key
+            row = { type = "text", text = L["%s: only in OpenMap's own options window."]:format(name) }
+        end
+        rows[#rows + 1] = row
+    end
+    return rows
+end
+
+-- The pages, in sidebar order. key: unique over all packs. "New in OpenMap" only while OpenMap has settings we have not
+-- sorted in.
+function OMS.Pages()
+    local pages = SortedPages()
+    if #OMS.NewKeys() > 0 then
+        pages[#pages + 1] = { key = "openmap.new", label = L["New in OpenMap"],
+            desc = L["OpenMap's settings that are not sorted in yet."], rows = NewRows }
+    end
     if OMS.HasAddonRows() then
         pages[#pages + 1] = { key = "openmap.addons", label = L["Other addons"], desc = L["Switches other addons add to OpenMap."], rows = AddonRows }
     end

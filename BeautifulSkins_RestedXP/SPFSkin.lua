@@ -43,7 +43,7 @@ local stopNumber = Weak() -- SPF's numbered stop pin -> { r, g, b } SPF gave its
 local S = {
     trackerHooked = false, compassHooked = false, compassAlpha = nil, busy = false,
     minimapHooked = false, tint = nil, tinting = false, watcher = nil, wait = 0, mapLayer = nil, pinCount = nil,
-    look = nil,
+    look = nil, canvasChildren = nil, layerWalks = 0, -- the canvas walks of FindLayer
 }
 
 -- ---------------------------------------------------------------------------------------------------------------
@@ -796,18 +796,47 @@ local function WatchPin(pin)
     end
 end
 
--- SPF's pin layer: canvas > SPF's frame > layer > pins, each pin naming its view, and the view its layer.
+-- SPF's pin layer: canvas > SPF's frame > layer > pins, each pin naming its view, and the view its layer (UI/MapCanvas.lua
+-- MapCanvas.Watch: SPF's frame holds the layer only, and every frame on the layer is a pin of a pool, with its view).
+-- The canvas holds the pins of every addon, hundreds with Questie and OpenMap, and until SPF has drawn its first pin
+-- the layer has none to recognise it by. So the canvas is only walked again when its number of children changed; the
+-- frames found there with a few children of their own are kept as candidates, and the looks in between check only
+-- those, without making a table.
+local HOST_CHILDREN = 3 -- candidates: the children of canvas frames with at most this many (SPF's frame has one)
+local candidates = setmetatable({}, { __mode = "k" }) -- possible layer -> true
+
+local function IsSpfLayer(layer)
+    if select("#", layer:GetChildren()) == 0 then return false end
+    local pin = layer:GetChildren() -- the first one is enough (see above)
+    local view = type(pin) == "table" and pin.view
+    return type(view) == "table" and view.layer == layer
+end
+
+local function AddCandidates(host)
+    local count = select("#", host:GetChildren())
+    if count == 0 or count > HOST_CHILDREN then return end
+    local a, b, c = host:GetChildren()
+    if a then candidates[a] = true end
+    if b then candidates[b] = true end
+    if c then candidates[c] = true end
+end
+
 local function FindLayer()
     local map = _G.WorldMapFrame
     if type(map) ~= "table" or type(map.GetCanvas) ~= "function" then return nil end
     local canvas = map:GetCanvas()
     if type(canvas) ~= "table" then return nil end
-    for _, host in ipairs({ canvas:GetChildren() }) do
-        for _, layer in ipairs({ host:GetChildren() }) do
-            for _, pin in ipairs({ layer:GetChildren() }) do
-                local view = pin.view
-                if type(view) == "table" and view.layer == layer then return layer end
-            end
+    local count = select("#", canvas:GetChildren())
+    if count ~= S.canvasChildren then
+        S.canvasChildren = count
+        S.layerWalks = S.layerWalks + 1
+        wipe(candidates)
+        for _, host in ipairs({ canvas:GetChildren() }) do AddCandidates(host) end
+    end
+    for layer in pairs(candidates) do
+        if IsSpfLayer(layer) then
+            wipe(candidates)
+            return layer
         end
     end
 end
@@ -827,6 +856,7 @@ local function MarkScreenPin()
     if type(f) == "table" then Mark(f.Pin) end
 end
 
+-- Runs only while the world map is open where Forever's map reports it (EventRegistry, see WatchMap).
 local function OnWatch(_, elapsed)
     S.wait = S.wait - elapsed
     local map = _G.WorldMapFrame
@@ -835,23 +865,27 @@ local function OnWatch(_, elapsed)
     if S.wait > 0 then return end
     S.wait = SCAN_EVERY
     if shown then ScanMap() end
-    MarkScreenPin()
 end
 
--- The game's waypoint is SPF's bend while it matches SPF's last write (ShortestPathForeverCharDB.guideWaypoint).
-local function WaypointIsBend()
-    local db = _G.ShortestPathForeverCharDB
-    local saved = type(db) == "table" and db.guideWaypoint
-    if type(saved) ~= "table" or not (C_Map and C_Map.HasUserWaypoint and C_Map.GetUserWaypoint) then return false end
-    local okHas, has = pcall(C_Map.HasUserWaypoint)
-    if not (okHas and has) then return false end
-    local point = C_Map.GetUserWaypoint()
-    local pos = type(point) == "table" and point.position
-    if not pos or point.uiMapID ~= saved.uiMapID then return false end
-    local x, y
-    if type(pos.GetXY) == "function" then x, y = pos:GetXY() else x, y = pos.x, pos.y end
-    return type(x) == "number" and type(y) == "number" and type(saved.x) == "number" and type(saved.y) == "number"
-        and math.abs(x - saved.x) < 1e-4 and math.abs(y - saved.y) < 1e-4
+-- The frame that counts SPF's pins while the map is up. The map tells EventRegistry when it opens and closes ("WorldMapOnShow",
+-- "WorldMapOnHide", as EllesmereUIQuestTracker and Waypoint UI use them); the callbacks only show and hide our own frame,
+-- nothing is hooked onto the map. Without them the frame stays shown and checks the map itself.
+local function WatchMap()
+    if S.watcher then return end
+    local watcher = CreateFrame("Frame")
+    watcher:SetScript("OnUpdate", OnWatch)
+    S.watcher = watcher
+    local registry = rawget(_G, "EventRegistry")
+    if type(registry) ~= "table" or type(registry.RegisterCallback) ~= "function" then return end
+    if not pcall(registry.RegisterCallback, registry, "WorldMapOnShow", function() watcher:Show() end, watcher) then return end
+    if not pcall(registry.RegisterCallback, registry, "WorldMapOnHide", function() watcher:Hide() end, watcher) then return end
+    local map = _G.WorldMapFrame
+    if not (type(map) == "table" and map:IsVisible()) then watcher:Hide() end
+end
+
+-- Whether the game's waypoint is SPF's bend (one check with our arrow: SPFBridge.lua SPF.Bend).
+local function IsBend()
+    return ns.SPF.Bend() ~= nil
 end
 
 -- OpenMap's marker of the game's waypoint (a pin of its set "waypoint", made anew on every waypoint change).
@@ -867,9 +901,98 @@ local function HookOpenMap()
         local icon = type(pin) == "table" and pin.Icon
         if type(icon) ~= "table" then return end
         Mark(icon)
-        marks[icon].plain = not WaypointIsBend()
+        marks[icon].plain = not IsBend()
         PaintMark(icon)
     end)
+end
+
+-- ---------------------------------------------------------------------------------------------------------------
+-- Minimap: the game's own waypoint. While SPF guides, the game's waypoint is SPF's next bend, and the client draws it on
+-- the minimap itself: no texture an addon could tint. A marker of ours in the accent sits over it instead (addon
+-- textures draw over the minimap's own icons), placed as SPF places its goal there (UI/Route.lua MinimapView and
+-- MinimapPoint, inverted): the offset in yards over the minimap's view radius, turned with the player while the minimap
+-- rotates, held on the rim (round, or square by the GetMinimapShape convention) when the bend is off the minimap, a
+-- little faded there as SPF does. Only for SPF's bend: the player's own waypoint keeps the game's look.
+local MINIMAP_WP_SIZE = 20
+local MINIMAP_WP_EDGE_ALPHA = 0.6
+local MINIMAP_WP_EVERY = 0.05 -- seconds between placements (the minimap turns with every step of a mouse turn)
+local MINIMAP_WP_ATLAS = { "Waypoint-MapPin-Minimap-Tracked", "Waypoint-MapPin-Tracked" }
+
+-- Secret values are never compared or calculated with: they count as unreadable.
+local function Number(v)
+    return ns.CanAccess(v) and type(v) == "number"
+end
+
+-- The bend's world position (continent, x, y) while the game's waypoint is SPF's bend.
+local function BendWorldPos()
+    local _, _, _, cont, wx, wy = ns.SPF.Bend()
+    return cont, wx, wy
+end
+
+-- u, v on the minimap's face (-1..1 from its centre, east and north), and whether it is held on the rim.
+local function MinimapSpot(cont, wx, wy)
+    local px, py, inst = ns.PlayerPos()
+    if not px or inst ~= cont then return nil end
+    local radius = C_Minimap and C_Minimap.GetViewRadius and C_Minimap.GetViewRadius()
+    if not (Number(radius) and radius > 0) then return nil end
+    local facing = 0
+    if GetCVar("rotateMinimap") == "1" then
+        facing = ns.PlayerFacing()
+        if not facing then return nil end
+    end
+    local north, east = wx - px, -(wy - py) -- UnitPosition: x grows north, y grows west
+    local cosine, sine = math.cos(facing), math.sin(facing)
+    local u = (east * cosine + north * sine) / radius
+    local v = (north * cosine - east * sine) / radius
+    local square = GetMinimapShape and GetMinimapShape() == "SQUARE"
+    local reach = square and math.max(math.abs(u), math.abs(v)) or math.sqrt(u * u + v * v)
+    if reach > 1 then
+        return u / reach, v / reach, true
+    end
+    return u, v, false
+end
+
+local function MinimapWaypointFrame()
+    if S.minimapWp then return S.minimapWp end
+    local map = rawget(_G, "Minimap")
+    if type(map) ~= "table" or type(map.CreateTexture) ~= "function" then return nil end
+    local f = CreateFrame("Frame", nil, map)
+    f:SetAllPoints(map)
+    local level = map:GetFrameLevel()
+    if type(level) == "number" then f:SetFrameLevel(level + 6) end
+    f:EnableMouse(false)
+    f.mark = f:CreateTexture(nil, "OVERLAY", nil, 6)
+    f.mark:SetSize(MINIMAP_WP_SIZE, MINIMAP_WP_SIZE)
+    for _, atlas in ipairs(MINIMAP_WP_ATLAS) do
+        if C_Texture and C_Texture.GetAtlasInfo and C_Texture.GetAtlasInfo(atlas) then
+            f.mark:SetAtlas(atlas)
+            break
+        end
+    end
+    f.mark:SetDesaturated(true)
+    f.mark:Hide()
+    f.wait = 0
+    f:SetScript("OnUpdate", function(self, elapsed)
+        self.wait = self.wait - elapsed
+        if self.wait > 0 then return end
+        self.wait = MINIMAP_WP_EVERY
+        local tint = S.tint
+        local cont, wx, wy
+        if tint then cont, wx, wy = BendWorldPos() end
+        local u, v, edge
+        if cont then u, v, edge = MinimapSpot(cont, wx, wy) end
+        if not u then
+            self.mark:Hide()
+            return
+        end
+        self.mark:ClearAllPoints()
+        self.mark:SetPoint("CENTER", self, "CENTER", u * self:GetWidth() / 2, v * self:GetHeight() / 2)
+        self.mark:SetVertexColor(tint[1], tint[2], tint[3])
+        self.mark:SetAlpha(edge and MINIMAP_WP_EDGE_ALPHA or 1)
+        self.mark:Show()
+    end)
+    S.minimapWp = f
+    return f
 end
 
 local function HookMinimap(f)
@@ -890,6 +1013,17 @@ local function ApplyMarks()
     S.tint = tint
     HookMinimap(f)
     HookOpenMap()
+    -- the minimap mark only with the tint: a hidden frame runs no OnUpdate
+    local wp = MinimapWaypointFrame()
+    if wp and tint then
+        if not wp:IsShown() then
+            wp.wait = 0
+            wp:Show()
+        end
+    elseif wp then
+        wp.mark:Hide()
+        wp:Hide()
+    end
     Mark(f.Goal)
     WatchLines(f)
     ScanMap()
@@ -908,7 +1042,7 @@ local function ApplyMarks()
             end
         end
     end
-    -- Apply also runs once a second while SPF's compass was never shown: only a new tint needs a repaint.
+    -- Apply also runs when the compass or the screen pin turns up: only a new tint needs a repaint.
     local look = tint and ("%.3f %.3f %.3f"):format(tint[1], tint[2], tint[3]) or "off"
     if look ~= S.look then
         S.look = look
@@ -916,18 +1050,16 @@ local function ApplyMarks()
         for tex in pairs(marks) do PaintMark(tex) end
         for pin in pairs(stopNumber) do PaintStop(pin) end
     end
-    if not S.watcher then
-        S.watcher = CreateFrame("Frame")
-        S.watcher:SetScript("OnUpdate", OnWatch)
-    end
+    WatchMap()
     return true
 end
 
 -- ---------------------------------------------------------------------------------------------------------------
--- Wiring: SPF builds the module and the minimap route at its init and the compass the first time it shows, so look
--- once a second until all three exist (and only while SPF is loaded).
+-- Wiring: SPF builds the module and the minimap route at its init, so look once a second until both exist (and only
+-- while SPF is loaded); the compass and the screen pin come only with a journey (see the looker below).
 
 local ticker
+local wired = false -- module and minimap route found: the ticker is not needed again
 
 local function Apply()
     if not ns.db then return end
@@ -937,18 +1069,36 @@ local function Apply()
     if not okC then geterrorhandler()(foundCompass) end
     local okM, foundMarks = pcall(ApplyMarks)
     if not okM then geterrorhandler()(foundMarks) end
-    if foundJourney and foundCompass and foundMarks and ticker then
-        ticker:Cancel()
-        ticker = nil
+    if foundJourney and foundMarks then
+        wired = true
+        if ticker then
+            ticker:Cancel()
+            ticker = nil
+        end
     end
 end
 
 local function StartWatching()
-    if ticker or not (ns.SPF and ns.SPF.Loaded()) then return end
+    if wired or ticker or not (ns.SPF and ns.SPF.Loaded()) then return end
     ticker = C_Timer.NewTicker(1, Apply)
 end
 
-ns.SPFSkin = { Apply = Apply, ScanMap = ScanMap }
+-- SPF makes its compass (UI/Compass.lua RefreshCompass) and its screen pin (UI/DestinationPin.lua) only for a journey and
+-- with their settings on: looked for twice a second while SPF guides, until both are there, each one styled as it comes.
+local JOURNEY_LOOK = 0.5
+local seenCompass, seenScreenPin = false, false
+
+ns.SPF.LookWhileGuiding(JOURNEY_LOOK, function()
+    local compass, screenPin = CompassFrame() ~= nil, type(_G[SCREEN_PIN_NAME]) == "table"
+    if compass ~= seenCompass or screenPin ~= seenScreenPin then
+        seenCompass, seenScreenPin = compass, screenPin
+        Apply()
+    end
+    return compass and screenPin
+end)
+
+ns.SPFSkin = { Apply = Apply, ScanMap = ScanMap, MinimapWaypoint = MinimapWaypointFrame, Watcher = function() return S.watcher end,
+    state = S }
 
 ns.OnLoaded(function()
     Apply()

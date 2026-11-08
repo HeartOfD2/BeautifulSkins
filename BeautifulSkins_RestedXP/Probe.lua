@@ -27,7 +27,7 @@ local SPF_KEYS = {
 
 local function ProbeBasics(say, safe)
     local _, build, _, iface = GetBuildInfo()
-    say(("build %s  interface %s  locale %s (texts %s)"):format(safe(build, "?"), safe(iface, "?"), GetLocale(), tostring(ns.host.locale))) -- lint:ignore
+    say(("build %s  interface %s  locale %s (texts %s)"):format(safe(build, "?"), safe(iface, "?"), GetLocale(), tostring(ns.host.locale)))
     say(("WOW_PROJECT_ID %s  WOW_PROJECT_CAMELOT %s  LE_EXPANSION_LEVEL_CURRENT %s"):format(
         safe(WOW_PROJECT_ID, "nil"), safe(WOW_PROJECT_CAMELOT, "nil"), safe(LE_EXPANSION_LEVEL_CURRENT, "nil")))
     say(("issecretvalue: %s  C_Spell: %s  GetSpellInfo global: %s  GetItemInfo global: %s"):format(

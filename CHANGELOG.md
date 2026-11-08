@@ -1,5 +1,43 @@
 # Changelog
 
+## 0.2.10 (2026-11-08)
+
+- Fix: the RestedXP guide window no longer makes a steady stream of garbage that ended in stutters. RestedXP
+  updates its steps several times per tick, and the list of upcoming steps was drawn again each time; it now draws
+  only when a step it shows changes (its text, the progress, the mouse wheel, a step done). With the world map open,
+  the look for ShortestPathForever's map pins no longer goes through every pin of every addon four times a second.
+- Fix: OpenMap with Questie: icons Questie draws while the map is open (a townsfolk kind switched off and on
+  again, Questie's map icons back on, a new quest) show at once instead of only after closing and reopening the map.
+  Questie set them back under OpenMap's map art right after OpenMap had lifted them.
+- ShortestPathForever: the route's next bend on the minimap is in the accent colour too. The game draws that waypoint
+  itself, so a marker of ours in the accent now sits over it (held on the minimap's rim when the bend is further
+  away, as the game does). Your own waypoints keep the game's look.
+- Fix: closing GearQuest's arrow cancels only its own hunt. A journey you started after it (a map click, /way, the
+  target switch) stays.
+- Fix: with Waypoint UI, the arrow follows its navigation only while Waypoint UI tracks it (only then does
+  ShortestPathForever hand its bends over). A pin of yours that Waypoint UI just holds is no longer taken for a bend.
+- Fix: a waypoint the game keeps hidden (restricted maps) is left alone instead of being read for the minimap marker.
+- Settings that ShortestPathForever adjusts when they are set (a slider's step) keep SPF's value, without a /reload
+  hint.
+- Less work in the background: the world map's pin watch runs only while the map is open, the minimap marker only
+  while the route's accent colour is on, and the look for ShortestPathForever's arrow, compass and screen pin only
+  during a journey (never without ShortestPathForever).
+- With Waypoint UI tracking the route's bends, the minimap marker and OpenMap's waypoint marker take the accent too
+  (the arrow, the minimap and OpenMap now share one check for "this waypoint is the route's bend").
+- OpenMap: switching map pins or the quill back on puts their buttons back where they were instead of at the end
+  of the row.
+- OpenMap 0.8.2: the map menu has OpenMap's new settings. Friends and guild and Share where you are (On the map),
+  the darkening's colour and its default (Look), Ctrl-click drops a pin (Pins and quill; with map pins off a
+  Ctrl-click still does nothing). Reset size and place is OpenMap's own now (greyed while Move Any places the map).
+- OpenMap: a gear at the top of the map menu opens OpenMap's own options window. The menu stays open and shows the
+  changes made there.
+- OpenMap: settings a newer OpenMap brings show up by themselves on a page "New in OpenMap", under OpenMap's own
+  names, until BeautifulSkins sorts them in. Tested with OpenMap 0.8.2.
+- OpenMap: a size of its own for each kind of icon, on top of OpenMap's icon size (section Size by kind): dungeons,
+  flight masters, boats, zeppelins, the quests in your log, party, friends and guild, map pins, map notes and the
+  waypoint on the page On the map, each kind of townsfolk on its page. 100 % is as big as every other icon; changes
+  show at once. Questie's icons keep the size Questie's options give them.
+
 ## 0.2.9 (2026-11-07)
 
 - With Waypoint UI: while the BeautifulRestedXP arrow is on, Waypoint UI's "RestedXP support" is switched off (and

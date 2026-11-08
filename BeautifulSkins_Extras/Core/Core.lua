@@ -50,6 +50,7 @@ ns.DEFAULTS = {
         window = {},            -- our map menu: place, size (Kit.Window geometry)
         -- page = "openmap.map" -- our map menu: the page shown last
         saved = {},             -- OpenMap's own values while a tool is off (they go back when it is on again)
+        sizes = {},             -- OpenMap's icons: a factor on its icon size per kind (Modules\OpenMapSizes.lua; none = 1)
     },
 }
 

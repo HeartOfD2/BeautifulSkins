@@ -1,13 +1,16 @@
 -- OpenMap: its map menu, redone. The OpenMap button on the map (and /openmap, the minimap button, the key binding)
 -- opens our window instead of OpenMap's: search on top, the actions as one row of quick buttons, then the settings
--- in eight pages with a sidebar (Settings\OpenMap.lua; the same pages are in our options window). Theme, accent and
+-- in pages with a sidebar (Settings\OpenMap.lua; the same pages are in our options window). Theme, accent and
 -- font follow BeautifulSkins. The window remembers its place, size and page; it opens next to the OpenMap button
--- until it is moved, and closes with the map.
--- Hook points (OpenMap v0.7.5-beta): the global frame OpenMapMenu (OpenMap's menu, made in mod:SetupPanel; its
--- OnShow is where the OpenMap button, /openmap and the binding end up), mod.db.menuOpen (OpenMap reopens its menu
--- with the map while it is set), mod:OpenMenu, mod:RefreshPanel (after every change of state), mod.CreateSearch,
--- the global OpenMap_Binding(id) (runs an action of the menu), and mod's state reads (PinMode, PinsShown,
--- PinsHidden, IsSketching, IsReporting, NewsUnseen). Post-hooks and HookScript only; nothing is hooked on the map.
+-- until it is moved, and closes with the map. The gear in its title bar opens OpenMap's own options window.
+-- Hook points (OpenMap v0.8.2, checked by tools/openmap_contract.py): the global frame OpenMapMenu (OpenMap's menu,
+-- made in mod:SetupPanel; its OnShow is where the OpenMap button, /openmap and the binding end up), mod.db.menuOpen
+-- (OpenMap reopens its menu with the map while it is set), mod:OpenMenu, mod:RefreshPanel (after every change of
+-- state), mod.CreateSearch, the global OpenMap_Binding(id) (runs an action of the menu), and mod's state reads
+-- (PinMode, PinsShown, PinsHidden, IsSketching, IsReporting, NewsUnseen). OpenMap's options window: AceConfigDialog's
+-- Open("OpenMap") (as a right-click on OpenMap's minimap button, Map/Launcher.lua OpenWindow; not OpenMap's own
+-- OpenOptions, which opens the map menu we replace), and AceConfigRegistry's callback ConfigTableChange (fired for
+-- every change made in that window). Post-hooks and HookScript only; nothing is hooked on the map.
 local _, ns = ...
 local L = ns.L
 local Kit, Theme = ns.Kit, ns.Theme
@@ -47,6 +50,31 @@ local function Binding(id)
     if type(fn) == "function" then fn(id) end
 end
 
+-- An Ace library OpenMap brings along, or nil. LibStub is a table with a __call metamethod: asked through its
+-- GetLibrary, silently (as BeautifulSkins_Attune's Adapters\Attune.lua does).
+local function Lib(name)
+    local stub = rawget(_G, "LibStub")
+    if type(stub) ~= "table" or type(stub.GetLibrary) ~= "function" then return nil end
+    local ok, lib = pcall(stub.GetLibrary, stub, name, true)
+    return ok and type(lib) == "table" and lib or nil
+end
+
+local function OptionsDialog()
+    local acd = Lib("AceConfigDialog-3.0")
+    return acd and type(acd.Open) == "function" and acd or nil
+end
+
+-- OpenMap's own options window (AceConfig): every setting under OpenMap's names. Our menu stays open beside it.
+local function OpenOptionsWindow()
+    local acd = OptionsDialog()
+    if acd then pcall(acd.Open, acd, "OpenMap") end
+end
+
+local function OptionsWindowOpen()
+    local acd = OptionsDialog()
+    return acd ~= nil and type(acd.OpenFrames) == "table" and acd.OpenFrames.OpenMap ~= nil
+end
+
 ---------------------------------------------------------------------------
 -- Quick buttons (OpenMap's actions)
 ---------------------------------------------------------------------------
@@ -74,7 +102,7 @@ local function Actions(mod)
             tip = L["Show or hide the quest log beside the map."], lit = QuestLogShown },
         { id = "pin", label = L["Drop a pin"], short = L["Pin"], icon = ICONS .. "INV_Misc_Map_01", atlas = "Waypoint-MapPin-Tracked",
             available = tools.PinsOn,
-            tip = L["Then click the map: a pin with a note of your own. Ctrl-click on the map does it any time."],
+            tip = L["Then click the map: a pin with a note of your own. A Ctrl-click on the map does the same, unless it is switched off (Pins and quill)."],
             right = L["Right-click: stop following the waypoint."],
             lit = function() return Is(mod.PinMode) end,
             litLabel = L["Click the map"],
@@ -240,6 +268,18 @@ local function Create(mod)
         self.title:SetText(("OpenMap  |cff%02x%02x%02x%s|r"):format(math.floor(c[1] * 255 + 0.5), math.floor(c[2] * 255 + 0.5),
             math.floor(c[3] * 255 + 0.5), version))
     end)
+    -- the gear: OpenMap's own options window (only with AceConfigDialog, which OpenMap brings along)
+    if OptionsDialog() then
+        ui.gear = win:AddTool("gear", OpenOptionsWindow, { L["OpenMap's options"],
+            L["Opens OpenMap's own options window, with every setting under OpenMap's names. This menu stays open."] })
+    end
+    -- a change in OpenMap's options window reaches the open page (at the next look, see OnUpdate below)
+    local acr = Lib("AceConfigRegistry-3.0")
+    if acr and type(acr.RegisterCallback) == "function" then
+        pcall(acr.RegisterCallback, ui, "ConfigTableChange", function(_, app)
+            if app == "OpenMap" then ui.stale = true end
+        end)
+    end
 
     local content = win.content
     local y = 0
@@ -403,6 +443,11 @@ local function Create(mod)
         if wait > 0 then return end
         wait = LIT_EVERY
         ns.Run("openmap", ui.RefreshChips)
+        -- (only while OpenMap's window is open: our own changes refresh the page themselves)
+        if ui.stale then
+            ui.stale = false
+            if OptionsWindowOpen() then ns.Run("openmap", ui.RefreshPage) end
+        end
     end)
     return win
 end

@@ -19,10 +19,15 @@ local Targets = {}
 ns.Targets = Targets
 
 -- The player's last own journey this session: { mapID, mx, my, label (SPF's, may be nil), name (label or zone),
--- questID, goal }; goal as ns.MakeGoal builds it.
+-- questID, goal, hunt }; goal as ns.MakeGoal builds it, hunt when it is a GearQuest hunt we started.
 local last
 -- Who SPF guided after the last burst of changes: "guide", "other" or nil.
 local running
+-- GearQuest hunts. huntStarting: our NavigateRoute for a hunt ran and SPF has not told us yet. gqOwned: the own route
+-- under way is that hunt; it ends with the next burst in which SPF guides somewhere else (a map click, /way, the guide,
+-- another own journey, all under the same owner name), so closing GearQuest's arrow never cancels those.
+local huntStarting = false
+local gqOwned = false
 
 local function Num(v)
     return ns.CanAccess(v) and type(v) == "number" and v == v
@@ -83,16 +88,26 @@ end
 
 local RefreshButtons -- defined below the buttons
 
--- SPF tells us once per burst; by then SPF has written or cleared its kept journey.
-local function OnChanges()
+-- SPF tells us once per burst; by then SPF has written or cleared its kept journey. changes (SPF's API.Subscribe):
+-- started/changed/ended when the destination moved, stop/active otherwise.
+local function OnChanges(changes)
     local api = Api()
     if not api then return end
+    if huntStarting then
+        huntStarting = false
+        gqOwned = Try(api.CurrentStop, OWN) ~= nil
+    elseif type(changes) == "table" and (changes.started or changes.changed or changes.ended) then
+        gqOwned = false
+    end
     if GuideRunning(api) then
         running = "guide"
     elseif Try(api.Active) then
         running = "other"
         local own = OwnJourney()
-        if own then last = own end
+        if own then
+            own.hunt = gqOwned or nil
+            last = own
+        end
     else
         if running == "other" then last = nil end -- arrived or cleared: nothing to go back to
         running = nil
@@ -113,15 +128,20 @@ local function ClearWaypoint()
     if Try(C_Map.HasUserWaypoint) then pcall(C_Map.ClearUserWaypoint) end
 end
 
-local function Navigate(owner, stop)
+-- hunt: the stop is a GearQuest hunt's (switching back to it), which GearQuest's arrow may cancel again.
+local function Navigate(owner, stop, hunt)
     local api = Api()
     if not api then
         ns.Say(L["ShortestPathForever is not loaded."])
         return
     end
     ClearWaypoint()
+    huntStarting = hunt == true
     local ok, started = pcall(api.NavigateRoute, owner, { stop })
-    if not (ok and started) then ns.Say(L["ShortestPathForever could not plan this journey."]) end
+    if not (ok and started) then
+        huntStarting = false
+        ns.Say(L["ShortestPathForever could not plan this journey."])
+    end
 end
 
 local function GoGuide()
@@ -135,7 +155,7 @@ local function GoGuide()
 end
 
 local function GoLast()
-    Navigate(OWN, { map = last.mapID, x = last.mx, y = last.my, title = last.label, questID = last.questID })
+    Navigate(OWN, { map = last.mapID, x = last.mx, y = last.my, title = last.label, questID = last.questID }, last.hunt)
 end
 
 -- What a click does now: "guide" or "other".
@@ -240,7 +260,6 @@ end
 -- (ns.GQArrowShared, read by the Extras pack). With our arrow switched off nothing would show the hunt, so GearQuest
 -- keeps its own arrow and its waypoint then.
 local gqHooked = false
-local gqOwned = false -- the running own journey is a GearQuest hunt we started
 
 local function ArrowOn()
     return ns.db ~= nil and ns.db.nav.showArrow ~= false
@@ -260,26 +279,31 @@ local function GearQuestJourney(entry)
     if type(spot) ~= "table" or not (Num(spot.mapId) and Num(spot.x) and Num(spot.y)) then return end
     local name = Try(function() return gq.Data:GetEntryDisplayName(entry) end)
     if type(name) ~= "string" or name == "" then name = type(entry.questName) == "string" and entry.questName or nil end
-    gqOwned = true
     ns.Queue(function()
         -- GearQuest's own waypoint (a pin on the hunt's zone, tracked) would hide SPF's bends from the arrow
         if type(gq.Guide) == "table" and type(gq.Guide.ClearForeverPin) == "function" then
             pcall(gq.Guide.ClearForeverPin, gq.Guide)
         end
         ClearWaypoint()
+        huntStarting = true
         -- GearQuest's spot is in percent, SPF wants 0-1
         local ok, started = pcall(api.NavigateRoute, OWN, { { map = spot.mapId, x = spot.x / 100, y = spot.y / 100, title = name } })
         if not (ok and started) then
-            gqOwned = false
+            huntStarting = false
             ns.Say(L["ShortestPathForever could not plan this journey."])
         end
     end)
 end
 
+-- GearQuest's arrow closed: cancel the hunt only while it is the journey under way, and forget it for the target switch.
 local function GearQuestDismissed()
     local api = Api()
     if gqOwned and api and running == "other" then pcall(api.Cancel, OWN) end
-    gqOwned = false
+    gqOwned, huntStarting = false, false
+    if last and last.hunt then
+        last = nil
+        RefreshButtons()
+    end
 end
 
 local function HookGearQuest()
@@ -314,9 +338,17 @@ function ns.TargetCommand(arg)
     Targets.Switch(arg == "guide")
 end
 
-ns.OnLoaded(function()
+local subscribed = false
+
+-- Once: SPF tells OnChanges about every burst. SPF loads first (OptionalDeps); the refresh only catches a late one.
+local function Subscribe()
+    if subscribed then return end
     local api = Api()
-    if api and type(api.Subscribe) == "function" then pcall(api.Subscribe, OnChanges) end
+    if api and type(api.Subscribe) == "function" and pcall(api.Subscribe, OnChanges) then subscribed = true end
+end
+
+ns.OnLoaded(function()
+    Subscribe()
     HookGearQuest()
 end)
 
@@ -334,6 +366,7 @@ ns.RegisterRefresh(function()
         spfArrowChecked = true
         ns.SPF.OnOptionChanged("showArrow")
     end
+    Subscribe()
     RefreshButtons()
     HookGearQuest() -- GearQuest may load after us
 end)

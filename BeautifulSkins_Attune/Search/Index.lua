@@ -44,9 +44,9 @@ end
 local FOLD = {}
 do
     local groups = {
-        a = "àáâãäåāăąÀÁÂÃÄÅĀĂĄ", ae = "æÆ", c = "çćčÇĆČ", d = "ðďđÐĎĐ", e = "èéêëēęěÈÉÊËĒĘĚ", g = "ğĞ", -- lint:ignore letter table
-        i = "ìíîïīıÌÍÎÏĪİ", l = "łĺľŁĹĽ", n = "ñńňÑŃŇ", o = "òóôõöøōőÒÓÔÕÖØŌŐ", oe = "œŒ", r = "řŕŘŔ", -- lint:ignore
-        s = "śşšŚŞŠ", ss = "ß", t = "ţťŢŤ", th = "þÞ", u = "ùúûüūůűųÙÚÛÜŪŮŰŲ", y = "ýÿÝŸ", z = "źżžŹŻŽ", -- lint:ignore
+        a = "àáâãäåāăąÀÁÂÃÄÅĀĂĄ", ae = "æÆ", c = "çćčÇĆČ", d = "ðďđÐĎĐ", e = "èéêëēęěÈÉÊËĒĘĚ", g = "ğĞ", -- lint:ignore (letter table for folding, not UI text)
+        i = "ìíîïīıÌÍÎÏĪİ", l = "łĺľŁĹĽ", n = "ñńňÑŃŇ", o = "òóôõöøōőÒÓÔÕÖØŌŐ", oe = "œŒ", r = "řŕŘŔ", -- lint:ignore (letter table for folding, not UI text)
+        s = "śşšŚŞŠ", ss = "ß", t = "ţťŢŤ", th = "þÞ", u = "ùúûüūůűųÙÚÛÜŪŮŰŲ", y = "ýÿÝŸ", z = "źżžŹŻŽ", -- lint:ignore (letter table for folding, not UI text)
     }
     for base, chars in pairs(groups) do
         for ch in chars:gmatch("[\194-\244][\128-\191]*") do FOLD[ch] = base end
