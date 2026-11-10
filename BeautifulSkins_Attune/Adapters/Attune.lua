@@ -456,7 +456,24 @@ function A.IsVisibleInList(a)
     if a.CLASS ~= nil and a.CLASS ~= "" and not db.showAllClassQuests and A.PlayerClass() ~= a.CLASS then
         return false
     end
+    -- 16001-39: a category switched off in Attune's options leaves the list (and so the search)
+    local groupVisible = _G.Attune_GroupVisible
+    if type(groupVisible) == "function" then
+        local ok, visible = pcall(groupVisible, a)
+        if ok and visible == false then return false end
+    end
     return a.FACTION == "Both" or a.FACTION == A.PlayerFaction()
+end
+
+-- Short code of an attunement as Attune's list shows it (16001-39: Deadmines is "VC" or "DM" per option).
+function A.ShortName(a)
+    if type(a) ~= "table" then return nil end
+    local getter = _G.Attune_ShortName
+    if type(getter) == "function" then
+        local ok, short = pcall(getter, a)
+        if ok and type(short) == "string" then return short end
+    end
+    return a.SHORT
 end
 
 function A.ShowsAllClassQuests()
@@ -1424,6 +1441,18 @@ end
 -- Search: data source, statuses, bringing a card into view
 ---------------------------------------------------------------------------
 
+-- Categories switched off in Attune's options (16001-39), as a sorted list for the index key.
+function A.HiddenGroupsKey(db)
+    local hidden = type(db) == "table" and db.hiddenGroups
+    if type(hidden) ~= "table" then return "" end
+    local keys = {}
+    for key, off in pairs(hidden) do
+        if off then keys[#keys + 1] = tostring(key) end
+    end
+    table.sort(keys)
+    return table.concat(keys, ",")
+end
+
 -- What the search index depends on; another value means the index is built again (version, language, the options that
 -- change what Attune's list shows).
 function A.IndexKey()
@@ -1432,6 +1461,7 @@ function A.IndexKey()
         tostring(A.Version()), tostring(type(GetLocale) == "function" and GetLocale() or ""),
         db.showAllClassQuests and "c1" or "c0", db.showDeprecatedAttunes and "d1" or "d0",
         tostring(A.PlayerClass()), tostring(A.PlayerFaction()),
+        db.deadminesAsDM and "m1" or "m0", A.HiddenGroupsKey(db),
     }, "|")
 end
 

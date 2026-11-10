@@ -63,8 +63,9 @@ local function Context(e)
         local size = tonumber(a.GROUPSIZE)
         if size then parts[#parts + 1] = L["%d players"]:format(size) end
         -- the short code ("BRD", "Strat") is searchable, so it is shown as well
-        if type(a.SHORT) == "string" and a.SHORT ~= "" and Search.Normalize(a.SHORT) ~= Search.Normalize(e.name) then
-            parts[#parts + 1] = a.SHORT
+        local short = A.ShortName(a)
+        if type(short) == "string" and short ~= "" and Search.Normalize(short) ~= Search.Normalize(e.name) then
+            parts[#parts + 1] = short
         end
         return table.concat(parts, " · ")
     end

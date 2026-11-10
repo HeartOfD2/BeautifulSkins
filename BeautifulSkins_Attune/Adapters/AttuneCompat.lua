@@ -14,7 +14,7 @@ local _, ns = ...
 local Compat = {}
 ns.AttuneCompat = Compat
 
-Compat.testedVersions = { "16001-32", "16001-34", "16001-35", "16001-37" }
+Compat.testedVersions = { "16001-32", "16001-34", "16001-35", "16001-37", "16001-39" }
 
 Compat.contract = {
     -- data and saved variables
@@ -57,6 +57,8 @@ Compat.contract = {
     { cap = "Path", kind = "function", name = "Attune_PathForAttune", when = "load" },
     { cap = "LastViewed", kind = "function", name = "Attune_GetLastViewed", when = "load" },
     { cap = "ReloadTree", kind = "function", name = "Attune_ReloadAttuneTree", when = "load" },
+    { cap = "Categories", kind = "function", name = "Attune_GroupVisible", when = "load", nilable = true },
+    { cap = "Categories", kind = "function", name = "Attune_ShortName", when = "load", nilable = true },
     { cap = "IconView", kind = "function", name = "Attune_SetIconView", when = "load" },
     { cap = "IconView", kind = "global", name = "attunelocal_viewToggle", when = "lazy" },
     { cap = "IconView", kind = "global", name = "attunelocal_iconView", when = "lazy" },

@@ -148,7 +148,7 @@ local function Build()
         local aid = tostring(a.ID)
         local aname = A.AttuneName(a)
         if type(aname) == "string" and aname ~= "" then
-            Add(NewEntry("attune", aid, a, aname, { hay = aname .. " " .. tostring(a.SHORT or "") }))
+            Add(NewEntry("attune", aid, a, aname, { hay = aname .. " " .. tostring(A.ShortName(a) or "") }))
         end
         local zones, zoneOrder = {}, {}
         for _, step in ipairs(source.steps) do
