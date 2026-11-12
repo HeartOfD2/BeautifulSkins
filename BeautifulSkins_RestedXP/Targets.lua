@@ -191,6 +191,52 @@ function Targets.AddTooltip(tooltip)
 end
 
 -- ---------------------------------------------------------------------------------------------------------------
+-- RXP super-tracks the quest of the active step (functions.lua: C_SuperTrack.SetSuperTrackedQuestID, whenever a quest
+-- element of the step updates). SPF reads that as the player's own quest click: it yields, clears its waypoint and never
+-- takes tracking back, so the game then shows the quest's objectives as white text at the edge of the screen and Waypoint
+-- UI has nothing to point at. The switch button repaired it (it plans the journey again). Here the same happens by
+-- itself, but only when RXP made the call (the player's own quest click stays theirs) and only when, a moment later,
+-- the guide still runs without a tracked waypoint.
+local RXP_TRACK_DELAY = 0.7 -- SPF's own re-plan after a goal change finishes within this time and needs no help
+local RXP_TRACK_GAP = 3 -- seconds between two repairs
+local lastRepair = 0
+local repairPending = false
+
+local function CalledByRxp()
+    local stack = debugstack and debugstack(2, 12, 0) or ""
+    return stack:find("RXPGuides", 1, true) ~= nil
+end
+
+local function RepairTracking()
+    repairPending = false
+    local api = Api()
+    if not (api and running == "guide" and GuideRunning(api)) then return end
+    if InCombatLockdown() then return end
+    if not (C_SuperTrack and C_SuperTrack.GetSuperTrackedQuestID and C_SuperTrack.IsSuperTrackingUserWaypoint) then return end
+    local quest = Try(C_SuperTrack.GetSuperTrackedQuestID)
+    if not (Num(quest) and quest > 0) then return end
+    if Try(C_SuperTrack.IsSuperTrackingUserWaypoint) then return end -- SPF's bend is tracked: nothing lost
+    if GetTime() - lastRepair < RXP_TRACK_GAP then return end
+    lastRepair = GetTime()
+    ns.Queue(GoGuide)
+end
+
+local function OnQuestTracked()
+    if repairPending or not (ns.db and ns.db.nav and ns.db.nav.showArrow ~= false) then return end
+    if not CalledByRxp() then return end
+    repairPending = true
+    C_Timer.After(RXP_TRACK_DELAY, function() ns.Try(RepairTracking) end)
+end
+
+local trackHooked = false
+
+local function HookQuestTracking()
+    if trackHooked or not (C_SuperTrack and type(C_SuperTrack.SetSuperTrackedQuestID) == "function") then return end
+    trackHooked = true
+    hooksecurefunc(C_SuperTrack, "SetSuperTrackedQuestID", function() ns.Try(OnQuestTracked) end)
+end
+
+-- ---------------------------------------------------------------------------------------------------------------
 -- Button in the Journey header of the tracker
 
 local trackerButton
@@ -350,6 +396,7 @@ end
 ns.OnLoaded(function()
     Subscribe()
     HookGearQuest()
+    HookQuestTracking()
 end)
 
 local spfArrowChecked = false
