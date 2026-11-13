@@ -571,14 +571,27 @@ local function SyncSource(nav)
 end
 
 -- ---------------------------------------------------------------------------------------------------------------
--- Waypoint UI's "RestedXP support"
--- With it on, Waypoint UI makes a navigation of its own to RestedXP's target after every step change and reload, because
--- RXP's arrow frame is shown (Arrow.lua keeps it shown, only invisible). While that navigation is tracked, SPF writes no
--- bends but hands each one to Waypoint UI, and with 0-1 coordinates where Waypoint UI counts in percent, so the bend lands
--- in the map's corner. Our arrow already shows RestedXP's targets: the option goes off while our arrow is on, and the
--- user's value comes back when our arrow is switched off or our settings are reset. Waypoint UI reads its settings from
--- WaypointDB_Global on every use, so the change works at once; a navigation it already made to the RXP target goes too.
-local WUI_DB, WUI_KEY, WUI_FLAG = "WaypointDB_Global", "RestedXPSupportEnabled", "RestedXP_Waypoint"
+-- Waypoint UI's options that take the game's one waypoint from SPF while our arrow is on
+-- RestedXPSupportEnabled: Waypoint UI makes a navigation of its own to RestedXP's target after every step change and
+--   reload, because RXP's arrow frame is shown (Arrow.lua keeps it shown, only invisible); while it is tracked SPF hands
+--   its bends to Waypoint UI instead of writing them (docs/spf-wegpunkte-analyse.md). Our arrow shows RXP's targets.
+-- AutoTrackPlacedPinEnabled: tracks every new waypoint one frame later. When SPF gives an old pin of the player's back
+--   untracked, that tracking makes SPF's next guide yield before its first bend (docs/spf-issue-wegpunkt-rueckgabe.md).
+--   Read at Waypoint UI's load only (Code/Map/AutoTrackPlacedPin.lua): we set it on its ADDON_LOADED, before it reads;
+--   a later change works after /reload.
+-- AutoTrackChatLinkPinEnabled: sets and tracks a waypoint from a chat link (only shown with the one above off).
+-- CustomMapPinsEnabled: Waypoint UI's own map pins write the game's waypoint and its tracking themselves.
+-- All go off while our arrow is on; the user's values come back when our arrow is switched off or our settings are
+-- reset. The user's working setup (12.11.2026); Waypoint UI reads the others from WaypointDB_Global on every use.
+local WUI_DB, WUI_FLAG = "WaypointDB_Global", "RestedXP_Waypoint"
+local WUI_KEYS = { -- key -> Waypoint UI's default (Preload.lua), for a value it never saved
+    RestedXPSupportEnabled = false,
+    AutoTrackPlacedPinEnabled = true,
+    AutoTrackChatLinkPinEnabled = true,
+    CustomMapPinsEnabled = false,
+}
+local WUI_ORDER = { "RestedXPSupportEnabled", "AutoTrackPlacedPinEnabled", "AutoTrackChatLinkPinEnabled", "CustomMapPinsEnabled" }
+local UNSET = "unset" -- backup of a value Waypoint UI never saved (its default applied)
 local WUI = {}
 ns.WaypointUI = WUI
 
@@ -596,12 +609,31 @@ local function ClearWuiRestedNavigation()
     if Try(nav.IsUserNavigationFlagged, WUI_FLAG) then pcall(nav.ClearUserNavigation) end
 end
 
--- ns.db.wuiBackup = true: the option was on and we switched it off.
+-- ns.db.wuiBackups[key] = the user's value (true, or UNSET for Waypoint UI's default) that we switched off.
+-- ns.db.wuiBackup = true is the older note for RestedXPSupportEnabled alone.
+local function Backups()
+    local b = ns.db.wuiBackups
+    if type(b) ~= "table" then b = nil end
+    if ns.db.wuiBackup == true then
+        b = b or {}
+        b.RestedXPSupportEnabled = true
+        ns.db.wuiBackup = nil
+    end
+    ns.db.wuiBackups = b
+    return b
+end
+
 function WUI.Restore()
     local db = WuiDB()
-    if not (db and ns.db) or ns.db.wuiBackup == nil then return end -- Waypoint UI missing this session: keep the note
-    if db[WUI_KEY] == false then db[WUI_KEY] = true end
-    ns.db.wuiBackup = nil
+    if not (db and ns.db) then return end -- Waypoint UI missing this session: keep the notes
+    local b = Backups()
+    if not b then return end
+    for key, value in pairs(b) do
+        if db[key] == false then -- the user did not change it since
+            if value == UNSET then db[key] = nil else db[key] = value end
+        end
+    end
+    ns.db.wuiBackups = nil
 end
 
 function WUI.Sync()
@@ -611,15 +643,21 @@ function WUI.Sync()
         WUI.Restore()
         return
     end
-    if db[WUI_KEY] == true then
-        ns.db.wuiBackup = true
-        db[WUI_KEY] = false
+    local b = Backups()
+    for _, key in ipairs(WUI_ORDER) do
+        local value = db[key]
+        if value == true or (value == nil and WUI_KEYS[key] == true) then
+            b = b or {}
+            if b[key] == nil then b[key] = value == nil and UNSET or true end
+            db[key] = false
+        end
     end
-    if ns.db.wuiBackup then ClearWuiRestedNavigation() end
+    ns.db.wuiBackups = b
+    if b and b.RestedXPSupportEnabled then ClearWuiRestedNavigation() end
 end
 
 -- Waypoint UI's settings exist from its ADDON_LOADED on (ours runs first there: our frame was made earlier, so Waypoint UI
--- starts with the option already off); PLAYER_LOGIN covers a Waypoint UI that loaded before our database was ready.
+-- starts with the options already off); PLAYER_LOGIN covers a Waypoint UI that loaded before our database was ready.
 local wuiWatch = CreateFrame("Frame")
 wuiWatch:RegisterEvent("ADDON_LOADED")
 wuiWatch:RegisterEvent("PLAYER_LOGIN")
@@ -685,11 +723,24 @@ function ns.NavDebug()
         S(SPF.Loaded()), S(SPF.Version()), S(api ~= nil), OWNER, S(stop), S(tracking)))
     local wmap, wx, wy = SPF.ReadWaypoint()
     local wuiDB = WuiDB()
-    say(("Waypoint UI: RestedXP support %s  switched off by us %s"):format(
-        S(wuiDB and wuiDB[WUI_KEY]), S(ns.db and ns.db.wuiBackup == true)))
+    local off = {}
+    for _, key in ipairs(WUI_ORDER) do
+        off[#off + 1] = ("%s %s%s"):format(key:gsub("Enabled$", ""), S(wuiDB and wuiDB[key]),
+            ns.db and type(ns.db.wuiBackups) == "table" and ns.db.wuiBackups[key] ~= nil and " (ours)" or "")
+    end
+    say("Waypoint UI: " .. table.concat(off, "  "))
     say(("waypoint: %s  SPF's bend %s  Waypoint UI holding %s  tracked %s"):format(
         wmap and ("map %s %s / %s"):format(S(wmap), Num(wx * 100, 2), Num(wy * 100, 2)) or "none",
         S(SPF.Bend() ~= nil), S(WaypointUIHolding()), S(WaypointUITracking())))
+    -- SPF's last bend (guideWaypoint): empty while a pin of the player's is tracked during a journey means SPF wrote
+    -- no bend (docs/spf-issue-wegpunkt-rueckgabe.md)
+    local spfDB = rawget(_G, "ShortestPathForeverCharDB")
+    local saved = type(spfDB) == "table" and type(spfDB.guideWaypoint) == "table" and spfDB.guideWaypoint or nil
+    local journey = api and type(api.Journey) == "function" and Try(api.Journey)
+    say(("SPF bend saved: %s  journey owner %s  guided %s"):format(
+        saved and IsNum(saved.x) and IsNum(saved.y)
+            and ("map %s %s / %s"):format(S(saved.uiMapID), Num(saved.x * 100, 2), Num(saved.y * 100, 2)) or "none",
+        S(type(journey) == "table" and journey.owner or nil), S(type(journey) == "table" and journey.guided or nil)))
     say(("SPF arrow: setting %s  frame found %s  shown %s  alpha %s  arrow part alpha %s"):format(
         S(SPF.Get("arrow")), S(spfArrow ~= nil), S(spfArrow and spfArrow:IsShown()),
         Num(spfArrow and spfArrow:GetAlpha(), 2), Num(spfArrow and spfArrow.Arrow:GetAlpha(), 2)))

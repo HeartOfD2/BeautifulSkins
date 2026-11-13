@@ -221,9 +221,21 @@ local function RepairTracking()
     ns.Queue(GoGuide)
 end
 
+-- Straight away, in the same frame: put tracking back on SPF's bend before SPF reads the event. SPF then sees its own
+-- waypoint still tracked (JourneyGuide.lua SameTracking) and does not yield, so the bend and the arrow never go.
+local function KeepBend()
+    if running ~= "guide" or not (C_Map and C_Map.HasUserWaypoint and C_SuperTrack.SetSuperTrackedUserWaypoint) then return end
+    local db = _G.ShortestPathForeverCharDB
+    if not (type(db) == "table" and db.guideWaypoint) then return end -- the waypoint is not SPF's bend
+    if not Try(C_Map.HasUserWaypoint) or Try(C_SuperTrack.IsSuperTrackingUserWaypoint) then return end
+    pcall(C_SuperTrack.SetSuperTrackedUserWaypoint, true)
+end
+
 local function OnQuestTracked()
-    if repairPending or not (ns.db and ns.db.nav and ns.db.nav.showArrow ~= false) then return end
+    if not (ns.db and ns.db.nav and ns.db.nav.showArrow ~= false) then return end
     if not CalledByRxp() then return end
+    KeepBend()
+    if repairPending then return end
     repairPending = true
     C_Timer.After(RXP_TRACK_DELAY, function() ns.Try(RepairTracking) end)
 end

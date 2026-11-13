@@ -300,7 +300,7 @@ local function ArrowRows()
         Header("ARROW"),
         Row("nav", "showArrow", "toggle", "Show the BeautifulRestedXP arrow", {
             page = true, sync = "showArrow",
-            tip = "Off hides this arrow, for example when TomTom shows the way, and puts your ShortestPathForever and Waypoint UI settings back. While it is on, ShortestPathForever's own arrow stays invisible and Waypoint UI's \"RestedXP support\" stays off (it would take the waypoint from ShortestPathForever's bends). RestedXP's own arrow stays hidden until you also switch off \"Hide RestedXP's own arrow\". GearQuest hunts then use GearQuest's own arrow.",
+            tip = "Off hides this arrow, for example when TomTom shows the way, and puts your ShortestPathForever and Waypoint UI settings back. While it is on, ShortestPathForever's own arrow stays invisible and Waypoint UI's \"RestedXP support\", \"Auto-Track Pin\" (with \"from Link\") and \"Use Waypoint UI Map Pins\" stay off (they would take the waypoint from ShortestPathForever's bends; \"Auto-Track Pin\" changes after /reload). RestedXP's own arrow stays hidden until you also switch off \"Hide RestedXP's own arrow\". GearQuest hunts then use GearQuest's own arrow.",
         }),
         Row("nav", "style", "dropdown", "Arrow style", {
             values = { CHEVRON = L["Chevron"], RING = L["Ring"], PILL = L["Pill"], CLASSIC = L["Classic"] },

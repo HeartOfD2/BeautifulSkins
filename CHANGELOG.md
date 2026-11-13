@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.13 (2026-11-13)
+
+- RestedXP: on a RestedXP journey the arrow could point straight at the step's target and Waypoint UI named a
+  "Map Pin" of yours instead of the route's next bend. The guide's bend now stays tracked when RestedXP pins its
+  quest, so ShortestPathForever keeps writing it. `/brxp nav` shows ShortestPathForever's saved bend.
+- RestedXP: while the arrow is on, Waypoint UI's "Auto-Track Pin" (with "from Link") and "Use Waypoint UI Map Pins"
+  are switched off too, like "RestedXP support"; switching the arrow off gives your values back.
+
 ## 0.2.12 (2026-11-12)
 
 - Fix: the white quest objectives at the edge of the screen (and the missing waypoint) after a RestedXP step
