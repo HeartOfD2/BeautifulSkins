@@ -691,6 +691,21 @@ local function NextKey(store)
     return "own" .. n
 end
 
+local MAX_NAME = 40 -- bytes of an own theme's name
+
+-- Cuts text to at most limit bytes without splitting a UTF-8 character: if the first dropped byte is a continuation
+-- byte (0x80-0xBF), the cut steps back to the start of that character.
+local function Cut(text, limit)
+    if #text <= limit then return text end
+    local stop = limit + 1 -- first byte that would be dropped
+    while stop > 1 do
+        local byte = text:byte(stop)
+        if byte < 0x80 or byte > 0xBF then break end
+        stop = stop - 1
+    end
+    return text:sub(1, stop - 1)
+end
+
 -- A name not yet used by an own theme ("Name", "Name 2", ...).
 local function FreeName(store, name)
     local used = {}
@@ -756,7 +771,7 @@ function Theme.RenameOwn(key, name)
     if not def or name == "" then return false end
     if name ~= def.name then
         def.name = nil
-        def.name = FreeName(OwnStore(false), name:sub(1, 40))
+        def.name = FreeName(OwnStore(false), Cut(name, MAX_NAME))
         OwnChanged()
     end
     return true
@@ -879,7 +894,7 @@ function Theme.ImportOwn(text)
     if count == 0 then return nil, "data" end
     name = name:gsub("^%s+", ""):gsub("%s+$", "")
     if name == "" then name = L["Own theme"] end
-    return AddOwn({ name = name:sub(1, 40), mode = mode, colors = colors })
+    return AddOwn({ name = Cut(name, MAX_NAME), mode = mode, colors = colors })
 end
 
 -- Font choice: store it and repaint every text (Kit texts set their font in their paint functions).

@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.15 (2026-11-14)
+
+- Theme editor: long names of own themes are shortened without splitting a character, so a name with umlauts no
+  longer ends in a broken character.
+
 ## 0.2.14 (2026-11-14)
 
 - Works with OpenMap 0.8.9. The map menu has OpenMap's new settings on their own pages: "Map brightness" (Look),
