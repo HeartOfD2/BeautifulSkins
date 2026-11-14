@@ -414,7 +414,8 @@ local function Update()
         return false
     end
 
-    -- Distance and arrival time refer to the RXP step target, the direction to SPF's next bend.
+    -- Arrival refers to the RXP step target. The shown distance is the one SPF's compass gives (UI/Compass.lua Render):
+    -- straight to the point the arrow aims at while that is SPF's bend, else to the goal; whole yards, rounded down.
     local goal = t.goal or t
     local yards, why = ns.DistanceTo(goal.cont, goal.x, goal.y)
     -- the goal lies on another continent (boat, zeppelin ahead): the distance to the next bend, as SPF's arrow shows
@@ -425,8 +426,10 @@ local function Update()
     if key ~= latch.key then latch.key, latch.arrived = key, false end
     local radius = t.goal and t.goal.radius
     if yards and radius and radius > 0 and yards <= radius then latch.arrived = true end
-    if yards then
-        SetRow(distText, ("%d %s"):format(math.floor(ns.ToUnit(yards, nav.unit) + 0.5), UnitLabel(nav)))
+    local shown = yards
+    if t.source == "SPF" then shown = ns.DistanceTo(t.cont, t.x, t.y) or yards end
+    if shown then
+        SetRow(distText, ("%d %s"):format(math.floor(ns.ToUnit(shown, nav.unit)), UnitLabel(nav)))
     else
         SetRow(distText, why == "continent" and "~" or "")
     end

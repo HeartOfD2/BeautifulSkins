@@ -122,10 +122,40 @@ end
 -- A waypoint still on the map (the player's own, another addon's, a bend left over from before) would stand in SPF's
 -- way: SPF keeps a waypoint it finds when a journey starts as the player's, and the user saw journeys without bends and
 -- the arrow aiming at the end. Every switch clears it first (only the game's own waypoint; ending its tracking is the
--- game's part of clearing it).
+-- game's part of clearing it), except SPF's own bend while SPF leads to the place the switch asks for (Navigate).
 local function ClearWaypoint()
     if not (C_Map and type(C_Map.HasUserWaypoint) == "function" and type(C_Map.ClearUserWaypoint) == "function") then return end
     if Try(C_Map.HasUserWaypoint) then pcall(C_Map.ClearUserWaypoint) end
+end
+
+-- The journey under way already goes to the stop. SPF then keeps it as it is: another owner only takes it over
+-- (API.lua NavigateRoute, #826), the same owner only renames it (Itinerary.lua ResubmitRoute), and neither starts
+-- guidance again. Same place as SPF compares it, the world point; one yard of tolerance for the read-back.
+local function GoesThere(api, stop)
+    if type(api.Journey) ~= "function" then return false end
+    local journey = Try(api.Journey)
+    local goal = type(journey) == "table" and journey.goal
+    if type(goal) ~= "table" then return false end
+    local a, b = ns.MakeGoal(goal.map, goal.x, goal.y), ns.MakeGoal(stop.map, stop.x, stop.y)
+    if not (a and b) or a.cont ~= b.cont then return false end
+    local dx, dy = a.x - b.x, a.y - b.y
+    return dx * dx + dy * dy <= 1
+end
+
+-- SPF leads right now: guidance on, and the tracked waypoint is SPF's bend.
+local function Leading(api)
+    if not Try(api.Active) then return false end
+    local tracking = C_SuperTrack and C_SuperTrack.IsSuperTrackingUserWaypoint
+    if not (tracking and Try(tracking)) then return false end
+    return ns.SPF.Bend(true) ~= nil
+end
+
+-- Guidance on the same journey again, as the tracker's guidance switch does (API.Pause / API.Resume): a guide that
+-- stopped (its bend was cleared) or yielded (a quest took the tracking) is replaced by a new one, which places its bend.
+local function Lead(api, owner)
+    if type(api.Resume) ~= "function" then return end
+    if Try(api.Active) and type(api.Pause) == "function" then pcall(api.Pause, owner) end
+    pcall(api.Resume, owner)
 end
 
 -- hunt: the stop is a GearQuest hunt's (switching back to it), which GearQuest's arrow may cancel again.
@@ -135,13 +165,19 @@ local function Navigate(owner, stop, hunt)
         ns.Say(L["ShortestPathForever is not loaded."])
         return
     end
-    ClearWaypoint()
+    -- SPF's own bend stays: clearing it ends SPF's guidance (JourneyGuide.lua OwnsWaypoint reads it as the player's),
+    -- and for the place the journey already goes to nothing would start it again.
+    local same = GoesThere(api, stop)
+    local leading = same and Leading(api)
+    if not leading then ClearWaypoint() end
     huntStarting = hunt == true
     local ok, started = pcall(api.NavigateRoute, owner, { stop })
     if not (ok and started) then
         huntStarting = false
         ns.Say(L["ShortestPathForever could not plan this journey."])
+        return
     end
+    if same and not leading then Lead(api, owner) end
 end
 
 local function GoGuide()

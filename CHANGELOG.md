@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.16 (2026-11-14)
+
+- RestedXP: "Switch target" broke ShortestPathForever's guidance when the journey already led to that place: the route
+  stayed on the map, but its next bend and the arrow's aim were gone and further clicks changed nothing. The switch
+  now leaves ShortestPathForever's bend alone there and starts its guidance again when it had stopped or given way.
+- RestedXP: the arrow shows the distance to the bend it points at and the journey's time left, the same numbers as
+  ShortestPathForever's compass.
+
 ## 0.2.15 (2026-11-14)
 
 - Theme editor: long names of own themes are shortened without splitting a character, so a name with umlauts no

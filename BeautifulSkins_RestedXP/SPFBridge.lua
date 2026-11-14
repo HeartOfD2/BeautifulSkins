@@ -314,7 +314,17 @@ local function ClearETA(reason)
     eta.seconds, eta.legs, eta.reason, eta.stale = nil, nil, reason, false
 end
 
--- Returns the shared table { seconds, legs, reason, stale }; read only. seconds is nil when unknown.
+-- The time left of the journey SPF guides, as SPF's tracker header and compass give it (API.Journey().secondsLeft, the
+-- plan under way from the current leg); nil while the arrow follows no SPF journey or SPF has no plan yet.
+local function JourneySeconds(api, t)
+    if not (t.source == "SPF" or t.source == "JOURNEY") or type(api.Journey) ~= "function" then return end
+    local journey = Try(api.Journey)
+    if type(journey) ~= "table" or type(journey.legs) ~= "table" or #journey.legs == 0 then return end
+    if IsNum(journey.secondsLeft) then return journey.secondsLeft end
+end
+
+-- Returns the shared table { seconds, legs, reason, stale }; read only. seconds is nil when unknown. seconds is the
+-- journey's time left while SPF guides it, else SPF's estimate to the goal; legs always the estimate's (transport state).
 function ns.ETA()
     local api = SPF.Api()
     local t = ns.Target()
@@ -333,18 +343,17 @@ function ns.ETA()
     if key == eta.key and now - eta.time < ETA_INTERVAL then return eta end
     eta.time, eta.key = now, key
     local mapID, mx, my = PlayerMapPos()
-    if not mapID then
-        ClearETA("unreadable")
-        return eta
-    end
-    local ok, detail, reason = pcall(api.EstimateDetail, mapID, mx, my, goal.mapID, goal.mx, goal.my)
+    local ok, detail, reason = false, nil, "unreadable"
+    if mapID then ok, detail, reason = pcall(api.EstimateDetail, mapID, mx, my, goal.mapID, goal.mx, goal.my) end
     if ok and type(detail) == "table" and IsNum(detail.seconds) then
         eta.seconds, eta.legs, eta.reason, eta.stale = detail.seconds, detail.legs, nil, false
     elseif ok and reason == "combat" then
         eta.stale = eta.seconds ~= nil
     else
-        ClearETA(ok and type(reason) == "string" and reason or "error")
+        ClearETA(mapID and (ok and type(reason) == "string" and reason or "error") or "unreadable")
     end
+    local left = JourneySeconds(api, t)
+    if left then eta.seconds, eta.reason, eta.stale = left, nil, false end
     return eta
 end
 
