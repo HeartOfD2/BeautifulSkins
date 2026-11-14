@@ -309,4 +309,15 @@ ns.locales.deDE = {
     ["OpenMap: icon size by kind"] = "OpenMap: Größe je Symbolart",
     -- OpenMap: Questie's icons drawn with the map open (step 31)
     ["OpenMap: Questie's icons over the map"] = "OpenMap: Questie-Symbole über der Karte",
+    -- OpenMap 0.8.9: settings sorted in (step 35)
+    ["Friends"] = "Freunde",
+    ["Guild members"] = "Gildenmitglieder",
+    ["Hide world markers in instances"] = "Weltmarkierungen in Instanzen ausblenden",
+    ["Dungeon maps"] = "Dungeon-Karten",
+    ["Dungeon maps from the minimap"] = "Dungeon-Karten aus der Minikarte",
+    ["Map brightness (%)"] = "Helligkeit der Karte (%)",
+    ["Map with the Gamepad UI (test)"] = "Karte mit der Gamepad-Oberfläche (Test)",
+    ["Follow new pins"] = "Neuen Markierungen folgen",
+    ["Send new pins to group"] = "Neue Markierungen an die Gruppe senden",
+    ["Auto-add group's pins"] = "Markierungen der Gruppe automatisch übernehmen",
 }

@@ -21,9 +21,13 @@ local LINE_TEXT = { 0.72, 0.72, 0.72 } -- EUI objective grey
 local LINE_DIM = { 0.45, 0.45, 0.45 } -- SPF's greyed rows
 local WHITE = { 1, 1, 1 }
 
--- SPF's own compass colours (UI/Compass.lua), put back when the compass skin is switched off.
-local SPF_TICK = { 0.72, 0.67, 0.55, 0.7 }
-local SPF_CENTER = { 1, 0.82, 0, 0.85 }
+-- SPF's own compass colours and centre size (UI/Compass.lua, 1.35.0), put back when the compass skin is switched off;
+-- the quieter green ones while a stop's area is reached (frame.arrived, since 1.25.0).
+local SPF_TICK = { 0.72, 0.67, 0.55, 0.9 }
+local SPF_CENTER = { 1, 0.82, 0, 1 }
+local SPF_ARRIVED_TICK = { 0.6, 0.76, 0.58, 0.9 }
+local SPF_ARRIVED_CENTER = { 0.62, 0.9, 0.55, 1 }
+local SPF_CENTER_SIZE = { 2, 12 }
 
 local function Weak() return setmetatable({}, { __mode = "k" }) end
 
@@ -42,6 +46,7 @@ local stopNumber = Weak() -- SPF's numbered stop pin -> { r, g, b } SPF gave its
 
 local S = {
     trackerHooked = false, compassHooked = false, compassAlpha = nil, busy = false,
+    centerHooked = false, painting = false, -- the compass centre's paint hook, and our own paint of it
     minimapHooked = false, tint = nil, tinting = false, watcher = nil, wait = 0, mapLayer = nil, pinCount = nil,
     look = nil, canvasChildren = nil, layerWalks = 0, -- the canvas walks of FindLayer
 }
@@ -548,7 +553,9 @@ local function StyleCompass(f)
         end
     end
     if f.Center then
+        S.painting = true
         f.Center:SetColorTexture(r, g, b, 1)
+        S.painting = false
         f.Center:SetSize(2, 8)
     end
     StyleFont(f.Distance, 11, font)
@@ -563,16 +570,20 @@ local function StyleCompass(f)
 end
 
 local function UnstyleCompass(f)
+    local tc = f.arrived and SPF_ARRIVED_TICK or SPF_TICK
     for _, tick in ipairs(f.ticks) do
-        tick:SetColorTexture(SPF_TICK[1], SPF_TICK[2], SPF_TICK[3], SPF_TICK[4])
+        tick:SetColorTexture(tc[1], tc[2], tc[3], tc[4])
         if tick.label then
             RestoreFont(tick.label)
             RestoreColor(tick.label)
         end
     end
     if f.Center then
-        f.Center:SetColorTexture(SPF_CENTER[1], SPF_CENTER[2], SPF_CENTER[3], SPF_CENTER[4])
-        f.Center:SetSize(1, 6)
+        local cc = f.arrived and SPF_ARRIVED_CENTER or SPF_CENTER
+        S.painting = true
+        f.Center:SetColorTexture(cc[1], cc[2], cc[3], cc[4])
+        S.painting = false
+        f.Center:SetSize(SPF_CENTER_SIZE[1], SPF_CENTER_SIZE[2])
     end
     for _, fs in ipairs({ f.Distance, f.Time, f.MoverHint }) do
         RestoreFont(fs)
@@ -585,10 +596,22 @@ end
 
 local compassStyled = false
 
+-- SPF 1.25.0+ paints the ticks and then the centre again whenever a stop's area is reached or left (Compass.lua Paint),
+-- over our colours: the centre's paint, the last of it, brings ours back in the same frame.
+local function HookCompassPaint(f)
+    if S.centerHooked or type(f.Center) ~= "table" then return end
+    S.centerHooked = true
+    hooksecurefunc(f.Center, "SetColorTexture", function()
+        if S.painting or not compassStyled then return end
+        StyleCompass(f)
+    end)
+end
+
 local function ApplyCompass()
     local f = CompassFrame()
     if not f then return false end
     HookCompass(f)
+    HookCompassPaint(f)
     if CompassOn() then
         StyleCompass(f)
         compassStyled = true
@@ -612,7 +635,8 @@ end
 -- Markers are textures: the goal pin, ring and arrow marks, the lit stop button, their glows. A texture is tinted by
 -- the atlas or file it shows, so a marker that turns into a transport or flight master icon gets its own look back.
 -- Since SPF 1.22.46 the goal is SPF's own gold pin, a file (media\Pin) on the world map, minimap, compass and screen;
--- since 1.22.48 the stops and the compass's turns up to 25 wear gold numbered markers, files too (media\Numbers\<n>).
+-- since 1.22.48 the stops and the compass's turns up to 25 wear gold numbered markers, files too (media\Numbers\<n>);
+-- since 1.37.0 those files are ForeverCore's (ForeverCore.Art.Marker, ForeverCore\media\Numbers\<n>).
 -- OpenMap draws the game's waypoint on its stitched map itself (Map/Nav.lua, pin set "waypoint"); while SPF guides,
 -- that waypoint is SPF's next bend and takes the tint too, the player's own waypoint keeps its gold.
 --
@@ -630,8 +654,21 @@ local MARK_ATLAS = {
 }
 local STOP_MARKS = { "Texture", "Button", "Glow" }
 local SPF_PIN = "Interface\\AddOns\\ShortestPathForever\\media\\Pin" -- SPF's own goal pin (UI/Art.lua ns.PIN_FILE)
-local SPF_NUMBERS = "Interface\\AddOns\\ShortestPathForever\\media\\Numbers\\%d" -- its numbered markers (ns.NumberFile)
+local SPF_NUMBERS = "Interface\\AddOns\\ShortestPathForever\\media\\Numbers\\%d" -- its numbered markers up to 1.36
 local SPF_NUMBER_MAX = 25
+
+-- The numbered marker files SPF draws: ForeverCore's (SPF 1.37.0 and later, ns.NumberFile = ForeverCore.Art.Marker),
+-- and SPF's own from before.
+local function NumberFiles(n)
+    local fc = rawget(_G, "ForeverCore")
+    local art = type(fc) == "table" and type(fc.Art) == "table" and fc.Art
+    local own = SPF_NUMBERS:format(n)
+    if art and type(art.Marker) == "function" then
+        local file = Try(art.Marker, n)
+        if type(file) == "string" then return own, file end
+    end
+    return own
+end
 local SCAN_EVERY = 0.25 -- seconds between looks for the pin layer and for SPF's screen pin
 
 local function MinimapRoute()
@@ -703,12 +740,17 @@ local function ArtFiles()
         local probe = UIParent:CreateTexture(nil, "BACKGROUND")
         probe:Hide()
         local function Learn(path)
+            if not path then return end
             probe:SetTexture(path)
             local id = probe:GetTexture()
             if id ~= nil then files[id] = true end
         end
         Learn(SPF_PIN)
-        for n = 1, SPF_NUMBER_MAX do Learn(SPF_NUMBERS:format(n)) end
+        for n = 1, SPF_NUMBER_MAX do
+            local own, shared = NumberFiles(n)
+            Learn(own)
+            Learn(shared)
+        end
         probe:SetTexture(nil)
         S.artFiles = files
     end

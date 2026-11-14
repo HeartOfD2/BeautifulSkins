@@ -5,7 +5,6 @@ local addonName, ns = ...
 local L = ns.L
 
 local OWNER = "RestedXP" -- SPF's owner id for RXP guidance
-local METRES_PER_YARD = 0.9144 -- SPF/Distance.lua:9
 local ETA_INTERVAL = 1 -- seconds between SPF queries
 local BEND_RADIUS = 30 -- yards to the SPF waypoint for the transport state
 local SPF_ARROW_LOOK = 0.5 -- seconds between looks for the frame of SPF's own arrow
@@ -66,10 +65,12 @@ function ns.FormatTime(seconds)
     return ("%d:%02d"):format(m, s)
 end
 
--- Yards to the display unit (nav.unit "m" or "yd"); SPF counts metres as yards * 0.9144.
+-- Yards to the display unit (nav.unit "m" or "yd"). Since SPF 1.27.0 "metres" only changes the unit word, the number
+-- stays the game's yards, as the game's own German and other metric clients show it (SPF Core/Distance.lua
+-- FormatDistance); up to 1.26 SPF converted with 0.9144. Our arrow follows, so its number matches SPF's tracker,
+-- compass and arrow.
 function ns.ToUnit(yards, unit)
-    if unit == "yd" then return yards end
-    return yards * METRES_PER_YARD
+    return yards
 end
 
 -- ---------------------------------------------------------------------------------------------------------------
@@ -758,8 +759,8 @@ function ns.NavDebug()
         say(("goal: map %s  %s / %s  name %s  radius %s"):format(
             S(goal.mapID), Num(goal.mx * 100, 2), Num(goal.my * 100, 2), S(goal.name), S(goal.radius)))
         if yards then
-            say(("distance: %s yd = %s m  (arrow shows %s %s)"):format(
-                Num(yards, 0), Num(ns.ToUnit(yards, "m"), 0), Num(ns.ToUnit(yards, unit), 0), S(unit)))
+            say(("distance: %s yd  (arrow shows %s %s, game yards as SPF counts them)"):format(
+                Num(yards, 0), Num(ns.ToUnit(yards, unit), 0), S(unit)))
         else
             say("distance: none (" .. S(why) .. ")")
         end

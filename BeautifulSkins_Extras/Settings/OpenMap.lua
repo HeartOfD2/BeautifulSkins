@@ -247,13 +247,15 @@ local function MapRows()
     Section(rows, L["YOU AND YOUR GROUP"],
         Opt(opts, "playerArrow", { text = L["Your arrow"] }),
         Opt(opts, "group", { text = L["Party and raid members"] }),
-        Opt(opts, "friends", { text = L["Friends and guild"] }),
+        Opt(opts, "friends", { text = L["Friends"] }),
+        Opt(opts, "guild", { text = L["Guild members"] }),
         Opt(opts, "friendsShare", { text = L["Share where you are"],
             tip = L["OpenMap asks once, as the map opens, whether you want to share. It stays off unless you say yes."] }))
     Section(rows, L["ICONS"],
         Opt(opts, "iconScale", { text = L["Icon size (%)"] }),
         Opt(opts, "iconsFrom", { text = L["Show icons from zoom"], zeroText = L["0 = automatic: each kind from its own zoom."] }),
-        Opt(opts, "zoomHidePins", { text = L["Rest icons while zooming"], tip = L["Improves performance."] }))
+        Opt(opts, "zoomHidePins", { text = L["Rest icons while zooming"], tip = L["Improves performance."] }),
+        Opt(opts, "hideWorldPinsInInstances", { text = L["Hide world markers in instances"] }))
     local sizes = ns.OpenMapSizes
     SizeSection(rows, function() return sizes.MapKeys() end,
         SizeRow("dungeons", L["Dungeons and raids"]),
@@ -278,6 +280,8 @@ local function DungeonRows()
         Opt(opts, "dungeonLevels", { text = L["Level ranges under the entrances"] }),
         Opt(opts, "entranceClick", { text = L["A click on an entrance opens"], when = Has("HasDungeonJournal") }))
     Section(rows, L["DUNGEON MAPS"],
+        Opt(opts, "dungeonMaps", { text = L["Dungeon maps"] }),
+        Opt(opts, "dungeonMinimap", { text = L["Dungeon maps from the minimap"] }),
         Opt(opts, "dungeonBosses", { text = L["Bosses"] }),
         Opt(opts, "dungeonQuests", { text = L["Quests tab"], when = Has("DungeonQuestSource") }),
         Opt(opts, "questSource", { text = L["Quests come from"], when = Has("DungeonQuestSource"),
@@ -349,6 +353,7 @@ local function LookRows()
         Opt(opts, "darkenColorReset", { text = L["Default darkening colour"] }),
         own)
     Section(rows, L["COLOURS"],
+        Opt(opts, "brightness", { text = L["Map brightness (%)"] }),
         Opt(opts, "colorMatch", { text = L["Colour matching between zones (%)"] }),
         Opt(opts, "desaturate", { text = L["Take colour out (%)"] }))
     Section(rows, L["THE MAP"],
@@ -459,7 +464,8 @@ local function WindowRows()
         Opt(opts, "reopenView", { text = L["When the map opens again"] }),
         Opt(opts, "autoSwitch", { text = L["Load the zone in view"] }),
         Opt(opts, "moveFade", { text = L["Fade while moving (%)"] }),
-        Opt(opts, "mapFpsCap", { text = L["Map frame rate cap"], zeroText = L["0 = no cap."] }))
+        Opt(opts, "mapFpsCap", { text = L["Map frame rate cap"], zeroText = L["0 = no cap."] }),
+        Opt(opts, "padView", { text = L["Map with the Gamepad UI (test)"] }))
     Section(rows, L["BUTTONS"],
         Opt(opts, "mapButtons", { text = L["OpenMap button on the map"] }),
         DbToggle("tabRail", L["Buttons as tabs on the map's edge"],
@@ -487,7 +493,10 @@ local function ToolRows()
         Add(rows,
             Opt(opts, "ctrlClickPin", { text = L["Ctrl-click drops a pin"], enabled = tools.PinsOn,
                 tip = L["With \"Map pins\" off, a Ctrl-click on the map does nothing at all, whatever this switch says."] }),
-            Opt(opts, "pinsShared", { text = L["Pins others share with you"], enabled = tools.PinsOn }))
+            Opt(opts, "pinsFollowNew", { text = L["Follow new pins"], enabled = tools.PinsOn }),
+            Opt(opts, "pinsShared", { text = L["Pins others share with you"], enabled = tools.PinsOn }),
+            Opt(opts, "pinsShareGroup", { text = L["Send new pins to group"], enabled = tools.PinsOn }),
+            Opt(opts, "pinsGroupAdd", { text = L["Auto-add group's pins"], enabled = tools.PinsOn }))
     end
     rows[#rows + 1] = { type = "header", text = L["QUILL"] }
     rows[#rows + 1] = { type = "toggle", text = L["Quill"], refresh = true,

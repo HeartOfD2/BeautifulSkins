@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.14 (2026-11-14)
+
+- Works with OpenMap 0.8.9. The map menu has OpenMap's new settings on their own pages: "Map brightness" (Look),
+  "Dungeon maps" and "Dungeon maps from the minimap" (Dungeons), "Guild members" next to "Friends" and "Hide world
+  markers in instances" (On the map), "Map with the Gamepad UI (test)" (Window and buttons), and "Follow new pins",
+  "Send new pins to group" and "Auto-add group's pins" (Pins and quill). The page "New in OpenMap" stays empty.
+- RestedXP: works with ShortestPathForever 1.37.1. Numbered stop markers take the accent colour again, the restyled
+  compass keeps its look when ShortestPathForever repaints it at a stop, and distances in metres match
+  ShortestPathForever's numbers (the game's yards with the unit word "m").
+
 ## 0.2.13 (2026-11-13)
 
 - RestedXP: on a RestedXP journey the arrow could point straight at the step's target and Waypoint UI named a
