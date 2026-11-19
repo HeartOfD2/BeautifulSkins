@@ -320,4 +320,9 @@ ns.locales.deDE = {
     ["Follow new pins"] = "Neuen Markierungen folgen",
     ["Send new pins to group"] = "Neue Markierungen an die Gruppe senden",
     ["Auto-add group's pins"] = "Markierungen der Gruppe automatisch übernehmen",
+    -- OpenMap 0.8.10 (step 46)
+    ["Dungeon maps inside dungeons"] = "Dungeon-Karten in Dungeons",
+    -- GearQuest key binding (step 46)
+    ["Open or close the GearQuest window"] = "GearQuest-Fenster öffnen oder schließen",
+    ["GearQuest Forever is not loaded."] = "GearQuest Forever ist nicht geladen.",
 }

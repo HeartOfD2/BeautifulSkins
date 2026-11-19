@@ -7,7 +7,7 @@
 --              journey runs).
 --   Quill off: drawing ends at once (on the map, on a pin, on a dungeon's map), your drawings stay hidden, their
 --              buttons leave the map. Drawing for "Report a problem" stays: that is another tool.
--- Hook points (OpenMap v0.8.9, checked by tools/openmap_contract.py): mod.SetPinMode, mod:TogglePins, mod:ToggleSketch (post-hooks),
+-- Hook points (OpenMap v0.8.10, checked by tools/openmap_contract.py): mod.SetPinMode, mod:TogglePins, mod:ToggleSketch (post-hooks),
 -- mod.db.favorites / pinsHidden / pinsShared / sketchShown, mod.SetPinsHidden, mod.RefreshSketch, mod:RefreshPanel.
 -- One exception to "post-hooks only" (07.11.2026, for the user's wish that Ctrl-click does nothing): mod.DropWaypoint (Ctrl-click and the pin mode's
 -- click, WorldMap.lua DropAtCursor) gets a wrapper that stops it while pins are off. A post-hook comes too late: OpenMap

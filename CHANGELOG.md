@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.17 (2026-11-19)
+
+- Works with OpenMap 0.8.10. The map menu shows OpenMap's new setting "Dungeon maps inside dungeons" on the page
+  Dungeons.
+- GearQuest: a key binding "Open or close the GearQuest window" (Game menu > Options > Key Bindings > AddOns >
+  BeautifulSkins), the same as /gq.
+- Attune: works with Attune 16001-43 (search finds the new dungeon quests).
+
 ## 0.2.16 (2026-11-14)
 
 - RestedXP: "Switch target" broke ShortestPathForever's guidance when the journey already led to that place: the route

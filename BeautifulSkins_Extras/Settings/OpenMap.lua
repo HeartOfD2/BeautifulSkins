@@ -281,6 +281,7 @@ local function DungeonRows()
         Opt(opts, "entranceClick", { text = L["A click on an entrance opens"], when = Has("HasDungeonJournal") }))
     Section(rows, L["DUNGEON MAPS"],
         Opt(opts, "dungeonMaps", { text = L["Dungeon maps"] }),
+        Opt(opts, "dungeonInside", { text = L["Dungeon maps inside dungeons"] }),
         Opt(opts, "dungeonMinimap", { text = L["Dungeon maps from the minimap"] }),
         Opt(opts, "dungeonBosses", { text = L["Bosses"] }),
         Opt(opts, "dungeonQuests", { text = L["Quests tab"], when = Has("DungeonQuestSource") }),

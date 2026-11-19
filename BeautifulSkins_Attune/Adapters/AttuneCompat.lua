@@ -14,7 +14,7 @@ local _, ns = ...
 local Compat = {}
 ns.AttuneCompat = Compat
 
-Compat.testedVersions = { "16001-32", "16001-34", "16001-35", "16001-37", "16001-39" }
+Compat.testedVersions = { "16001-32", "16001-34", "16001-35", "16001-37", "16001-39", "16001-43" }
 
 Compat.contract = {
     -- data and saved variables
