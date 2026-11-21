@@ -1,10 +1,10 @@
 ## Interface: 16001
 ## Title: BeautifulSkins: |cff0cd29dMore skins|r
 ## Title-deDE: BeautifulSkins: |cff0cd29dWeitere Skins|r
-## Notes: Skins for GearQuest Forever, SkillUp Forever, Whisper Messenger, Waypoint UI and OpenMap. Loaded by BeautifulSkins.
-## Notes-deDE: Skins für GearQuest Forever, SkillUp Forever, Whisper Messenger, Waypoint UI und OpenMap. Wird von BeautifulSkins geladen.
+## Notes: Skins for GearQuest Forever, SkillUp Forever, Whisper Messenger, Waypoint UI, OpenMap and Dungeon Journal. Loaded by BeautifulSkins.
+## Notes-deDE: Skins für GearQuest Forever, SkillUp Forever, Whisper Messenger, Waypoint UI, OpenMap und Dungeon Journal. Wird von BeautifulSkins geladen.
 ## Author: HeartOfD2
-## Version: 0.2.17
+## Version: 0.2.18
 ## Category: Miscellaneous
 ## IconTexture: Interface\AddOns\BeautifulSkins\Media\Icon
 ## LoadOnDemand: 1
@@ -34,5 +34,6 @@ Modules\OpenMapTools.lua
 Modules\OpenMapSizes.lua
 Modules\OpenMapQuestie.lua
 Modules\OpenMapMenu.lua
+Modules\DungeonJournal.lua
 Settings\Settings.lua
 Settings\OpenMap.lua

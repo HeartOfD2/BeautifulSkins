@@ -18,6 +18,7 @@ ns.DEFAULTS = {
         whisper = true, whisperButton = true, skillup = true, waypoint = true,
         gqTracker = true, gqArrow = true, gqWindow = true, gqPopups = true,
         openmap = true,         -- OpenMap: our map menu instead of OpenMap's
+        dungeonJournal = true,  -- ForeverDungeonJournal: tracker look and boss symbols
     },
     whisper = {
         look = true,            -- Whisper Messenger's dark preset, flat frame and the EllesmereUI font
@@ -44,6 +45,12 @@ ns.DEFAULTS = {
         -- point = { point, relPoint, x, y } -- free arrow position
     },
     gqWindow = { hidePortrait = true },
+    dungeonJournal = {
+        background = 90,        -- tracker background opacity (0-100)
+        mark = true,            -- Shift-left-click on a living boss targets and marks it
+        badges = true,          -- the boss's symbol as a badge on its portrait
+        marks = {},             -- [dungeon][boss name] = raid symbol 0-8 (0 = none); missing = default by tracker order
+    },
     openmap = {
         pins = true,            -- OpenMap's map pins (off: the tool is gone, live)
         quill = true,           -- OpenMap's quill (off: the tool is gone, live)

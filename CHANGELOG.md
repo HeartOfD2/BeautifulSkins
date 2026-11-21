@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.18 (2026-11-21)
+
+- New skin for Dungeon Journal's dungeon tracker: flat panel in the accent, the time, mob XP and gold on one band, round
+  boss portraits with a ring and a check once killed, and a progress bar of the bosses killed.
+- Dungeon Journal: Shift-left-click on a living boss's portrait in the tracker targets it and puts a raid symbol on it,
+  when it is in range. Every boss has its own symbol (star, circle, diamond, ... in tracker order; the skull stays with
+  the rares), shown as a badge on its portrait. The gear in the tracker's header picks the symbol per boss.
+
 ## 0.2.17 (2026-11-19)
 
 - Works with OpenMap 0.8.10. The map menu shows OpenMap's new setting "Dungeon maps inside dungeons" on the page

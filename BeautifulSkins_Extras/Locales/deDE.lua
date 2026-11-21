@@ -155,8 +155,8 @@ ns.locales.deDE = {
     ["Flight masters"] = "Flugmeister",
     ["From zoom"] = "Ab Zoomstufe",
     ["Full-screen map fills the width"] = "Vollbildkarte füllt die Breite",
-    ["GearQuest, SkillUp, Whisper Messenger, Waypoint UI and OpenMap."] =
-        "GearQuest, SkillUp, Whisper Messenger, Waypoint UI und OpenMap.",
+    ["GearQuest, SkillUp, Whisper Messenger, Waypoint UI, OpenMap and Dungeon Journal."] =
+        "GearQuest, SkillUp, Whisper Messenger, Waypoint UI, OpenMap und Dungeon Journal.",
     ["Glide to where you are. A middle-click on the map centres on you at the current zoom."] =
         "Gleitet zu deiner Position. Ein Mittelklick auf die Karte zentriert dich bei gleichem Zoom.",
     ["Hide all"] = "Alle ausblenden",
@@ -325,4 +325,33 @@ ns.locales.deDE = {
     -- GearQuest key binding (step 46)
     ["Open or close the GearQuest window"] = "GearQuest-Fenster öffnen oder schließen",
     ["GearQuest Forever is not loaded."] = "GearQuest Forever ist nicht geladen.",
+    -- Dungeon Journal tracker and boss symbols
+    ["Dungeon Journal"] = "Dungeon Journal",
+    ["Dungeon Journal: tracker"] = "Dungeon Journal: Tracker",
+    ["RAID SYMBOLS"] = "ZIELMARKIERUNGEN",
+    ["Boss symbols"] = "Boss-Symbole",
+    ["Pick the raid symbol of each boss. Shift-left-click on a boss's portrait marks it."] =
+        "Für jeden Boss das Zielsymbol wählen. Shift-Linksklick aufs Porträt eines Bosses markiert ihn.",
+    ["Shift-left-click: target and mark %s"] = "Shift-Linksklick: als Ziel wählen und %s markieren",
+    ["Shift-left-click marks the boss"] = "Shift-Linksklick markiert den Boss",
+    ["Shift-left-click on a living boss's portrait in the tracker targets the boss and puts its raid symbol on it, when it is in range. In a raid group you need lead or assist."] =
+        "Shift-Linksklick aufs Porträt eines lebenden Bosses im Tracker wählt ihn als Ziel und setzt sein Zielsymbol, wenn er in Reichweite ist. In einer Schlachtgruppe brauchst du Leitung oder Assistenz.",
+    ["Show the symbol on the portraits"] = "Symbol auf den Porträts zeigen",
+    ["Each boss has its own symbol: star, circle, diamond, triangle, moon, square, cross in tracker order. The skull stays with the rares. Change them with the gear in the tracker's header."] =
+        "Jeder Boss hat sein eigenes Symbol: Stern, Kreis, Diamant, Dreieck, Mond, Quadrat, Kreuz in der Reihenfolge des Trackers. Der Totenkopf bleibt den Rares. Ändern über das Zahnrad oben im Tracker.",
+    ["Reset all boss symbols"] = "Alle Boss-Symbole zurücksetzen",
+    ["No symbol"] = "Kein Symbol",
+    ["Shift-left-click only targets this boss."] = "Shift-Linksklick wählt diesen Boss nur als Ziel.",
+    ["No bosses in this tracker."] = "Keine Bosse in diesem Tracker.",
+    ["Only marks a boss in range. The skull stays with the rares. Dimmed symbols belong to another boss."] =
+        "Markiert nur Bosse in Reichweite. Der Totenkopf bleibt den Rares. Blasse Symbole gehören schon einem anderen Boss.",
+    ["Defaults"] = "Standard",
+    ["Star"] = "Stern",
+    ["Circle"] = "Kreis",
+    ["Diamond"] = "Diamant",
+    ["Triangle"] = "Dreieck",
+    ["Moon"] = "Mond",
+    ["Square"] = "Quadrat",
+    ["Cross"] = "Kreuz",
+    ["Skull"] = "Totenkopf",
 }

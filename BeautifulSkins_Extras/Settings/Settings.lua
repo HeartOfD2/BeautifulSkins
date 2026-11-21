@@ -76,6 +76,7 @@ local function SkinRows()
         ModuleToggle("skillup", L["SkillUp Forever: reagents tracker"]),
         ModuleToggle("waypoint", L["Waypoint UI: colours"]),
         ModuleToggle("openmap", L["OpenMap: new map menu"]),
+        ModuleToggle("dungeonJournal", L["Dungeon Journal: tracker"]),
         { type = "toggle", text = L["OpenMap: map pins"], refresh = true,
             tip = L["Off takes OpenMap's map pins away completely (\"Drop a pin\", the pin list, the pins on the map). Works at once."],
             get = function() return ns.OpenMap.PinsOn() end, set = function(v) ns.OpenMap.SetPins(v) end },
@@ -202,15 +203,35 @@ local function OtherRows()
     }
 end
 
+local function DungeonJournalRows()
+    local bgGet, bgSet = Field("dungeonJournal", "background")
+    return {
+        { type = "header", text = L["TRACKER"] },
+        { type = "slider", text = L["Background opacity"], min = 0, max = 100, step = 5, get = bgGet, set = bgSet },
+        { type = "header", text = L["RAID SYMBOLS"] },
+        Toggle(L["Shift-left-click marks the boss"], "dungeonJournal", "mark",
+            L["Shift-left-click on a living boss's portrait in the tracker targets the boss and puts its raid symbol on it, when it is in range. In a raid group you need lead or assist."]),
+        Toggle(L["Show the symbol on the portraits"], "dungeonJournal", "badges"),
+        { type = "text", get = function()
+            return L["Each boss has its own symbol: star, circle, diamond, triangle, moon, square, cross in tracker order. The skull stays with the rares. Change them with the gear in the tracker's header."]
+        end },
+        { type = "button", text = L["Reset all boss symbols"], onClick = function()
+            wipe(ns.db.dungeonJournal.marks)
+            Refresh()
+        end },
+    }
+end
+
 -- One module in the host's options: four pages (keys carry the pack prefix, page keys are unique over all packs).
 function Settings.Modules()
     local list = {
-        { key = "Extras", title = L["More skins"], desc = L["GearQuest, SkillUp, Whisper Messenger, Waypoint UI and OpenMap."],
+        { key = "Extras", title = L["More skins"], desc = L["GearQuest, SkillUp, Whisper Messenger, Waypoint UI, OpenMap and Dungeon Journal."],
             pages = {
                 { key = "extras.skins", label = L["Skins"], rows = SkinRows },
                 { key = "extras.whisper", label = "Whisper Messenger", rows = WhisperRows },
                 { key = "extras.gearquest", label = "GearQuest", rows = GearQuestRows },
                 { key = "extras.other", label = L["SkillUp & Waypoint"], rows = OtherRows },
+                { key = "extras.dungeonjournal", label = "Dungeon Journal", rows = DungeonJournalRows },
             } },
     }
     local openmap = ns.OpenMapSettings and ns.OpenMapSettings.Module()
