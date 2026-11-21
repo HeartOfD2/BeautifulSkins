@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.19 (2026-11-21)
+
+- Dungeon Journal: in the boss symbols panel a cut-off boss name shows in full on mouse-over, the hint text never runs
+  into the rows, and a click anywhere outside the panel closes it.
+
 ## 0.2.18 (2026-11-21)
 
 - New skin for Dungeon Journal's dungeon tracker: flat panel in the accent, the time, mob XP and gold on one band, round

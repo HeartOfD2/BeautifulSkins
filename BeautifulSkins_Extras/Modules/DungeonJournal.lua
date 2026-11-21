@@ -415,7 +415,16 @@ end
 -- Panel: one symbol per boss
 ---------------------------------------------------------------------------
 
-local ROW_H, PICK = 26, 20
+local ROW_H, PICK, PICK_GAP = 26, 20, 2
+local NAME_W = 112 -- fixed name column; a cut-off name shows in full in a tooltip
+local PICKS_W = 9 * PICK + 8 * PICK_GAP
+
+-- Width a FontString needs for its text on one line.
+local function TextWidth(fs)
+    local w = fs.GetUnboundedStringWidth and fs:GetUnboundedStringWidth()
+    if type(w) ~= "number" then w = fs:GetStringWidth() end
+    return type(w) == "number" and w or 0
+end
 
 local function BossName(name)
     local fdj = FDJ()
@@ -472,12 +481,30 @@ local function PanelRow(p, i)
     row:SetHeight(ROW_H)
     row.name = Kit.Text(row, 12, "text")
     row.name:SetPoint("LEFT", 2, 0)
-    row.name:SetWidth(112)
+    row.name:SetWidth(NAME_W)
     row.name:SetWordWrap(false)
+    -- hover over a cut-off name: the full name
+    row.hit = CreateFrame("Frame", nil, row)
+    row.hit:SetAllPoints(row.name)
+    row.hit:EnableMouse(true)
+    row.hit:SetScript("OnEnter", function(self)
+        local full = row.fullName
+        local cut = row.name.IsTruncated and row.name:IsTruncated()
+        if type(cut) ~= "boolean" then cut = TextWidth(row.name) > NAME_W end
+        if not (full and cut) then return end
+        GameTooltip:SetOwner(self, "ANCHOR_TOP")
+        GameTooltip:SetText(full, 1, 1, 1)
+        GameTooltip:Show()
+    end)
+    row.hit:SetScript("OnLeave", function() GameTooltip:Hide() end)
     row.picks = {}
     for s = 0, 8 do
         local b = PickButton(row, s)
-        b:SetPoint("LEFT", row, "LEFT", 118 + s * (PICK + 2), 0)
+        if s == 0 then
+            b:SetPoint("LEFT", row.name, "RIGHT", 6, 0)
+        else
+            b:SetPoint("LEFT", row.picks[s - 1], "RIGHT", PICK_GAP, 0)
+        end
         row.picks[s] = b
     end
     p.rows[i] = row
@@ -514,7 +541,8 @@ function DJ.RenderPanel()
     for i, f in ipairs(bosses) do
         local row = PanelRow(p, i)
         row.dungeon, row.bossName = dungeon, f.boss.name
-        row.name:SetText(BossName(f.boss.name))
+        row.fullName = BossName(f.boss.name)
+        row.name:SetText(row.fullName)
         Kit.SetTextColor(row.name, f.kill and "textDim" or "text")
         local mine = symbols[f]
         for s = 0, 8 do
@@ -528,9 +556,15 @@ function DJ.RenderPanel()
     end
     for i = #bosses + 1, #p.rows do p.rows[i]:Hide() end
     p.empty:SetShown(#bosses == 0)
+    -- height from the rows and the measured hint
+    local width = 12 + NAME_W + 6 + PICKS_W + 12
+    p:SetWidth(width)
+    p.hint:SetWidth(width - 24)
+    local hintH = math.ceil(p.hint:GetStringHeight() or 0)
     local bodyH = math.max(1, #bosses) * ROW_H
     p.body:SetHeight(bodyH)
-    p:SetHeight(72 + bodyH + 70)
+    p:SetHeight(66 + bodyH + 8 + hintH + 8 + 22 + 10)
+    DJ.PlacePanel(p, t)
 end
 
 local function BuildPanel()
@@ -571,7 +605,7 @@ local function BuildPanel()
     p.empty:SetText(L["No bosses in this tracker."])
     p.hint = Kit.Text(p, 11, "textDim")
     p.hint:SetPoint("BOTTOMLEFT", 12, 40)
-    p.hint:SetPoint("RIGHT", p, "RIGHT", -12, 0)
+    p.hint:SetJustifyV("BOTTOM")
     p.hint:SetWordWrap(true)
     p.hint:SetText(L["Only marks a boss in range. The skull stays with the rares. Dimmed symbols belong to another boss."])
     p.reset = Kit.Button(p, 110, L["Defaults"], function()
@@ -582,11 +616,20 @@ local function BuildPanel()
         local r, g, b = ns.Accent()
         self:SetColorTexture(r, g, b, 0.9)
     end)
-    p:SetScript("OnShow", function() DJ.RenderPanel() end)
+    -- a click anywhere else closes the panel (the gear toggles it itself)
+    p:SetScript("OnEvent", function(self)
+        if self:IsMouseOver() or (trackerDeco and trackerDeco.gear:IsMouseOver()) then return end
+        self:Hide()
+    end)
+    p:SetScript("OnShow", function(self)
+        pcall(self.RegisterEvent, self, "GLOBAL_MOUSE_DOWN")
+        DJ.RenderPanel()
+    end)
+    p:SetScript("OnHide", function(self) pcall(self.UnregisterEvent, self, "GLOBAL_MOUSE_DOWN") end)
     return p
 end
 
-local function PlacePanel(p, t)
+function DJ.PlacePanel(p, t)
     p:ClearAllPoints()
     local right = (t:GetRight() or 0) * (t:GetEffectiveScale() or 1)
     local screen = (UIParent:GetWidth() or 0) * (UIParent:GetEffectiveScale() or 1)
@@ -607,7 +650,6 @@ function DJ.TogglePanel(show)
         panel:Hide()
         return
     end
-    PlacePanel(panel, t)
     panel:Show()
     DJ.RenderPanel()
 end
