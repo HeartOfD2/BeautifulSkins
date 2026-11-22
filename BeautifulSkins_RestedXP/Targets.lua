@@ -152,9 +152,16 @@ end
 
 -- Guidance on the same journey again, as the tracker's guidance switch does (API.Pause / API.Resume): a guide that
 -- stopped (its bend was cleared) or yielded (a quest took the tracking) is replaced by a new one, which places its bend.
+-- Pausing a yielded guide gives back, untracked, the waypoint the player had when the journey started (JourneyGuide.lua
+-- StopGuide restores previousWaypoint). The new guide would keep it as the player's, and Waypoint UI tracking it one
+-- frame later makes that guide yield before its first bend (docs/spf-issue-wegpunkt-rueckgabe.md, spf_guide_check.py).
+-- Like every switch (ClearWaypoint), the switch clears it before guidance starts again.
 local function Lead(api, owner)
     if type(api.Resume) ~= "function" then return end
-    if Try(api.Active) and type(api.Pause) == "function" then pcall(api.Pause, owner) end
+    if Try(api.Active) and type(api.Pause) == "function" then
+        local ok, paused = pcall(api.Pause, owner)
+        if ok and paused then ClearWaypoint() end
+    end
     pcall(api.Resume, owner)
 end
 

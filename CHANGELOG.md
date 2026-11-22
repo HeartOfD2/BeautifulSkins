@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.2.20 (2026-11-22)
+
+- RestedXP arrow: works with ShortestPathForever 1.45.0. Its bronze goal pin (a journey that is planned but not guided)
+  takes the accent colour like the gold one. Since 1.45.0 a RestedXP journey places no waypoint on its bends, so the
+  arrow points straight at the guide's target there; your own journeys still follow every bend.
+- RestedXP arrow: on the way to a goal on another continent (boat, zeppelin) it no longer says "Arrived" when you come
+  close to a bend; "Switch target" no longer lets an old map pin of yours take the place of the next bend.
+- GearQuest: the key "Open or close the GearQuest window" also works while the pack "More skins" is switched off.
+- Theme editor: a copy or a rename to a name already taken keeps its number within the name's length limit.
+
 ## 0.2.19 (2026-11-21)
 
 - Dungeon Journal: in the boss symbols panel a cut-off boss name shows in full on mouse-over, the hint text never runs

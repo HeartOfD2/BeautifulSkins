@@ -69,6 +69,7 @@ ns.locales.deDE = {
         "Schrift aller unserer Texte. „EllesmereUI-Schrift“ folgt der in EllesmereUI gewählten Schrift (nur solange es installiert und aktiv ist).",
     ["Frost"] = "Frost",
     ["Game font"] = "Spielschrift",
+    ["GearQuest Forever is not loaded."] = "GearQuest Forever ist nicht geladen.",
     ["GearQuest, SkillUp, Whisper, Waypoint"] = "GearQuest, SkillUp, Whisper, Waypoint",
     ["General"] = "Allgemein",
     ["good"] = "gut",
@@ -111,6 +112,7 @@ ns.locales.deDE = {
     ["not part of this installation"] = "nicht Teil dieser Installation",
     ["off"] = "aus",
     ["Open in EllesmereUI"] = "In EllesmereUI öffnen",
+    ["Open or close the GearQuest window"] = "GearQuest-Fenster öffnen oder schließen",
     ["Open the options"] = "Optionen öffnen",
     ["Opens the color picker. The chosen color becomes the accent."] =
         "Öffnet die Farbauswahl. Die gewählte Farbe wird zum Akzent.",

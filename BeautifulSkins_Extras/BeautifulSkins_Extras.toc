@@ -4,7 +4,7 @@
 ## Notes: Skins for GearQuest Forever, SkillUp Forever, Whisper Messenger, Waypoint UI, OpenMap and Dungeon Journal. Loaded by BeautifulSkins.
 ## Notes-deDE: Skins für GearQuest Forever, SkillUp Forever, Whisper Messenger, Waypoint UI, OpenMap und Dungeon Journal. Wird von BeautifulSkins geladen.
 ## Author: HeartOfD2
-## Version: 0.2.19
+## Version: 0.2.20
 ## Category: Miscellaneous
 ## IconTexture: Interface\AddOns\BeautifulSkins\Media\Icon
 ## LoadOnDemand: 1
@@ -17,7 +17,6 @@ Locales\enUS.lua
 Locales\deDE.lua
 Core\Core.lua
 Core\EUI.lua
-Core\Bindings.lua
 UI\Theme.lua
 UI\Skin.lua
 UI\Arrow.lua

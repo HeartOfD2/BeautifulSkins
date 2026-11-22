@@ -323,8 +323,6 @@ ns.locales.deDE = {
     -- OpenMap 0.8.10 (step 46)
     ["Dungeon maps inside dungeons"] = "Dungeon-Karten in Dungeons",
     -- GearQuest key binding (step 46)
-    ["Open or close the GearQuest window"] = "GearQuest-Fenster öffnen oder schließen",
-    ["GearQuest Forever is not loaded."] = "GearQuest Forever ist nicht geladen.",
     -- Dungeon Journal tracker and boss symbols
     ["Dungeon Journal"] = "Dungeon Journal",
     ["Dungeon Journal: tracker"] = "Dungeon Journal: Tracker",

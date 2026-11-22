@@ -706,16 +706,22 @@ local function Cut(text, limit)
     return text:sub(1, stop - 1)
 end
 
--- A name not yet used by an own theme ("Name", "Name 2", ...).
+-- A name not yet used by an own theme ("Name", "Name 2", ...), at most MAX_NAME bytes with its number: a long name
+-- gives way to the number, cut on whole characters.
 local function FreeName(store, name)
     local used = {}
     for _, def in pairs(store) do
         if type(def) == "table" and def.name then used[def.name] = true end
     end
+    name = Cut(name, MAX_NAME)
     if not used[name] then return name end
     local n = 2
-    while used[name .. " " .. n] do n = n + 1 end
-    return name .. " " .. n
+    while true do
+        local suffix = " " .. n
+        local candidate = Cut(name, MAX_NAME - #suffix) .. suffix
+        if not used[candidate] then return candidate end
+        n = n + 1
+    end
 end
 
 -- Adds an own theme from a definition, returns its key.

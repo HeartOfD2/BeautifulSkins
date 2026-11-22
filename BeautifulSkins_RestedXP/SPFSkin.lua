@@ -637,6 +637,9 @@ end
 -- Since SPF 1.22.46 the goal is SPF's own gold pin, a file (media\Pin) on the world map, minimap, compass and screen;
 -- since 1.22.48 the stops and the compass's turns up to 25 wear gold numbered markers, files too (media\Numbers\<n>);
 -- since 1.37.0 those files are ForeverCore's (ForeverCore.Art.Marker, ForeverCore\media\Numbers\<n>).
+-- Since 1.44.0 an untracked goal wears the pin's bronze twin (media\PinInactive, UI/Art.lua ns.GoalPinFile): a journey
+-- planned but not guided, and every RestedXP journey from 1.45.0 on, where SPF leaves the directions to RestedXP
+-- (UI/Arrow.lua DirectionsShown, #1246). It takes the tint as the gold pin does.
 -- OpenMap draws the game's waypoint on its stitched map itself (Map/Nav.lua, pin set "waypoint"); while SPF guides,
 -- that waypoint is SPF's next bend and takes the tint too, the player's own waypoint keeps its gold.
 --
@@ -654,6 +657,7 @@ local MARK_ATLAS = {
 }
 local STOP_MARKS = { "Texture", "Button", "Glow" }
 local SPF_PIN = "Interface\\AddOns\\ShortestPathForever\\media\\Pin" -- SPF's own goal pin (UI/Art.lua ns.PIN_FILE)
+local SPF_PIN_INACTIVE = "Interface\\AddOns\\ShortestPathForever\\media\\PinInactive" -- untracked (ns.PIN_INACTIVE_FILE)
 local SPF_NUMBERS = "Interface\\AddOns\\ShortestPathForever\\media\\Numbers\\%d" -- its numbered markers up to 1.36
 local SPF_NUMBER_MAX = 25
 
@@ -746,6 +750,7 @@ local function ArtFiles()
             if id ~= nil then files[id] = true end
         end
         Learn(SPF_PIN)
+        Learn(SPF_PIN_INACTIVE)
         for n = 1, SPF_NUMBER_MAX do
             local own, shared = NumberFiles(n)
             Learn(own)

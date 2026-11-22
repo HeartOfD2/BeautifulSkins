@@ -763,15 +763,16 @@ function ns.NavDebug()
     say(("direction point: continent %s  x %s  y %s"):format(S(t.cont), Num(t.x), Num(t.y)))
     local goal = t.goal
     if goal then
-        local yards, why = ns.DistanceTo(goal.cont, goal.x, goal.y)
+        -- the arrow's own numbers (Arrow.lua ns.ArrowDistances): the bend while SPF leads, whole units rounded down
+        local yards, shown, why = ns.ArrowDistances(t, inst)
         local unit = ns.db.nav.unit
+        local arrow = shown and ("%d %s"):format(math.floor(ns.ToUnit(shown, unit)), S(unit)) or "~"
         say(("goal: map %s  %s / %s  name %s  radius %s"):format(
             S(goal.mapID), Num(goal.mx * 100, 2), Num(goal.my * 100, 2), S(goal.name), S(goal.radius)))
         if yards then
-            say(("distance: %s yd  (arrow shows %s %s, game yards as SPF counts them)"):format(
-                Num(yards, 0), Num(ns.ToUnit(yards, unit), 0), S(unit)))
+            say(("distance: %s yd  (arrow shows %s, game yards as SPF counts them)"):format(Num(yards, 0), arrow))
         else
-            say("distance: none (" .. S(why) .. ")")
+            say(("distance: none (%s)  (arrow shows %s)"):format(S(why), arrow))
         end
     else
         say("goal: none (SPF waypoint only)")

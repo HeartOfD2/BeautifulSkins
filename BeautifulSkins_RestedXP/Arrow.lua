@@ -392,6 +392,21 @@ local function UnitLabel(nav)
     return nav.unit == "yd" and "yd" or "m"
 end
 
+-- Distances of a target in game yards (inst: the player's continent): to the goal (nil, why when there is none), and
+-- the one the arrow shows, as SPF's compass gives it (UI/Compass.lua Render): straight to the point the arrow aims at
+-- while that is SPF's bend, else to the goal; with the goal on another continent (boat, zeppelin ahead) to the next
+-- bend, as SPF's arrow shows it. Also used by /brxp nav, so it names the number the arrow shows.
+function ns.ArrowDistances(t, inst)
+    local goal = t.goal or t
+    local yards, why = ns.DistanceTo(goal.cont, goal.x, goal.y)
+    local shown = yards
+    if not yards and why == "continent" and t.goal and t.cont == inst then
+        shown = ns.DistanceTo(t.cont, t.x, t.y)
+    end
+    if t.source == "SPF" then shown = ns.DistanceTo(t.cont, t.x, t.y) or shown end
+    return yards, shown, why
+end
+
 -- Reads the world, draws the matching state and returns true when the arrow should be visible.
 local function Update()
     local nav = ns.db and ns.db.nav
@@ -414,20 +429,12 @@ local function Update()
         return false
     end
 
-    -- Arrival refers to the RXP step target. The shown distance is the one SPF's compass gives (UI/Compass.lua Render):
-    -- straight to the point the arrow aims at while that is SPF's bend, else to the goal; whole yards, rounded down.
-    local goal = t.goal or t
-    local yards, why = ns.DistanceTo(goal.cont, goal.x, goal.y)
-    -- the goal lies on another continent (boat, zeppelin ahead): the distance to the next bend, as SPF's arrow shows
-    if not yards and why == "continent" and t.goal and t.cont == inst then
-        yards = ns.DistanceTo(t.cont, t.x, t.y)
-    end
+    -- Arrival refers to the RXP step target, only ever measured to the goal itself (a bend on the way is not there).
+    local yards, shown, why = ns.ArrowDistances(t, inst)
     local key = t.goal and t.goal.key or nil
     if key ~= latch.key then latch.key, latch.arrived = key, false end
     local radius = t.goal and t.goal.radius
     if yards and radius and radius > 0 and yards <= radius then latch.arrived = true end
-    local shown = yards
-    if t.source == "SPF" then shown = ns.DistanceTo(t.cont, t.x, t.y) or yards end
     if shown then
         SetRow(distText, ("%d %s"):format(math.floor(ns.ToUnit(shown, nav.unit)), UnitLabel(nav)))
     else
