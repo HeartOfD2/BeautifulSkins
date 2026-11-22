@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.21 (2026-11-22)
+
+- Works with OpenMap 0.8.12. The map menu has OpenMap's five new settings on their own pages: "Arrow size" and "Your
+  arrow over everything" (greyed out while "Your arrow" is off) and "Say when OpenMap has an update" (On the map),
+  "Show places to explore" (Look), and "Right-click zooms out" (Window and buttons). The page "New in OpenMap" stays
+  empty.
+
 ## 0.2.20 (2026-11-22)
 
 - RestedXP arrow: works with ShortestPathForever 1.45.0. Its bronze goal pin (a journey that is planned but not guided)

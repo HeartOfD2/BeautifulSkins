@@ -3,7 +3,7 @@
 -- in pages with a sidebar (Settings\OpenMap.lua; the same pages are in our options window). Theme, accent and
 -- font follow BeautifulSkins. The window remembers its place, size and page; it opens next to the OpenMap button
 -- until it is moved, and closes with the map. The gear in its title bar opens OpenMap's own options window.
--- Hook points (OpenMap v0.8.10, checked by tools/openmap_contract.py): the global frame OpenMapMenu (OpenMap's menu,
+-- Hook points (OpenMap v0.8.12, checked by tools/openmap_contract.py): the global frame OpenMapMenu (OpenMap's menu,
 -- made in mod:SetupPanel; its OnShow is where the OpenMap button, /openmap and the binding end up), mod.db.menuOpen
 -- (OpenMap reopens its menu with the map while it is set), mod:OpenMenu, mod:RefreshPanel (after every change of
 -- state), mod.CreateSearch, the global OpenMap_Binding(id) (runs an action of the menu), and mod's state reads

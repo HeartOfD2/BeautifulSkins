@@ -10,7 +10,7 @@
 -- Fix: a post-hook on QuestieMap.utils.SetDrawOrder lifts the icon again exactly as OpenMap does (Questie's own order among
 -- its icons kept: level - QUESTIE_BASE + S.artTop + 1), only while OpenMap's map is stitched and the icon sits on a pin of
 -- the world map. Nothing of OpenMap's or Questie's is replaced; frame levels of addon frames only, no Blizzard frame.
--- Hook points (Questie 12.9.0, OpenMap v0.8.10; checked by tools/openmap_contract.py, Questie next to the OpenMap folder):
+-- Hook points (Questie 12.12.0, OpenMap v0.8.12; checked by tools/openmap_contract.py, Questie next to the OpenMap folder):
 -- QuestieLoader:ImportModule("QuestieMap").utils.SetDrawOrder, OpenMap.MapStitch.artTop, mod.IsStitched, QUESTIE_BASE 2015
 -- and the formula of Map/Extras.lua Lift, a map pin's .icon and .owningMap (HereBeDragons' pins on WorldMapFrame).
 local _, ns = ...

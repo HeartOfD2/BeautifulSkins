@@ -322,6 +322,13 @@ ns.locales.deDE = {
     ["Auto-add group's pins"] = "Markierungen der Gruppe automatisch übernehmen",
     -- OpenMap 0.8.10 (step 46)
     ["Dungeon maps inside dungeons"] = "Dungeon-Karten in Dungeons",
+    -- OpenMap 0.8.12 (step 57)
+    ["Show places to explore"] = "Orte zum Erkunden zeigen",
+    ["Arrow size (%)"] = "Pfeilgröße (%)",
+    ["Needs your arrow."] = "Braucht Euren Pfeil.",
+    ["Your arrow over everything"] = "Euer Pfeil über allem",
+    ["Right-click zooms out"] = "Rechtsklick zoomt heraus",
+    ["Say when OpenMap has an update"] = "Bei OpenMap-Update Bescheid geben",
     -- GearQuest key binding (step 46)
     -- Dungeon Journal tracker and boss symbols
     ["Dungeon Journal"] = "Dungeon Journal",

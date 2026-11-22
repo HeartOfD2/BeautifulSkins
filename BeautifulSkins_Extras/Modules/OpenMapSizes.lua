@@ -4,7 +4,7 @@
 -- (pin:SetScale(S.iconScale)) and in S.SetIconScale (every pin of every set); nothing else of OpenMap's scales a pin.
 -- Post-hooks on both put every pin of a kind with a factor at S.iconScale times the factor. Questie's icons on OpenMap's
 -- map are not OpenMap's pins (HereBeDragons, Map/Extras.lua) and keep the size Questie's options give them.
--- Hook points (OpenMap v0.8.10, checked by tools/openmap_contract.py): the global OpenMap's MapStitch (ns.MapStitch),
+-- Hook points (OpenMap v0.8.12, checked by tools/openmap_contract.py): the global OpenMap's MapStitch (ns.MapStitch),
 -- S.AddPin, S.SetIconScale, S.GetPinSet, S.iconScale, set.pins, the set keys in KINDS below and "tf_" .. key for each
 -- of mod.TOWNSFOLK (Map/Townsfolk.lua). Post-hooks on OpenMap's own table only; OpenMap's own frames, no Blizzard ones.
 local _, ns = ...

@@ -244,13 +244,19 @@ local function MapRows()
     Section(rows, L["QUESTS"],
         Opt(opts, "allQuests", { text = L["Quests from every zone"] }),
         QuestieRow())
+    local function ArrowOn() return mod.db.playerArrow ~= false end
     Section(rows, L["YOU AND YOUR GROUP"],
         Opt(opts, "playerArrow", { text = L["Your arrow"] }),
+        Opt(opts, "playerArrowScale", { text = L["Arrow size (%)"], enabled = ArrowOn,
+            tip = L["Needs your arrow."] }),
+        Opt(opts, "playerArrowOnTop", { text = L["Your arrow over everything"], enabled = ArrowOn,
+            tip = L["Needs your arrow."] }),
         Opt(opts, "group", { text = L["Party and raid members"] }),
         Opt(opts, "friends", { text = L["Friends"] }),
         Opt(opts, "guild", { text = L["Guild members"] }),
         Opt(opts, "friendsShare", { text = L["Share where you are"],
-            tip = L["OpenMap asks once, as the map opens, whether you want to share. It stays off unless you say yes."] }))
+            tip = L["OpenMap asks once, as the map opens, whether you want to share. It stays off unless you say yes."] }),
+        Opt(opts, "updateNotice", { text = L["Say when OpenMap has an update"] }))
     Section(rows, L["ICONS"],
         Opt(opts, "iconScale", { text = L["Icon size (%)"] }),
         Opt(opts, "iconsFrom", { text = L["Show icons from zoom"], zeroText = L["0 = automatic: each kind from its own zoom."] }),
@@ -352,7 +358,8 @@ local function LookRows()
         Opt(opts, "darkening", { text = L["Darkening (%)"] }),
         Opt(opts, "darkenColor", { text = L["Darkening colour"] }),
         Opt(opts, "darkenColorReset", { text = L["Default darkening colour"] }),
-        own)
+        own,
+        Opt(opts, "explore", { text = L["Show places to explore"] }))
     Section(rows, L["COLOURS"],
         Opt(opts, "brightness", { text = L["Map brightness (%)"] }),
         Opt(opts, "colorMatch", { text = L["Colour matching between zones (%)"] }),
@@ -464,6 +471,7 @@ local function WindowRows()
     Section(rows, L["BEHAVIOUR"],
         Opt(opts, "reopenView", { text = L["When the map opens again"] }),
         Opt(opts, "autoSwitch", { text = L["Load the zone in view"] }),
+        Opt(opts, "rightClickOut", { text = L["Right-click zooms out"] }),
         Opt(opts, "moveFade", { text = L["Fade while moving (%)"] }),
         Opt(opts, "mapFpsCap", { text = L["Map frame rate cap"], zeroText = L["0 = no cap."] }),
         Opt(opts, "padView", { text = L["Map with the Gamepad UI (test)"] }))
