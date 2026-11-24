@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.2.22 (2026-11-24)
+
+- RestedXP guide window: "Hide in instances" is now off by default, so the window stays visible in dungeons and
+  in combat. Existing settings are kept.
+
 ## 0.2.21 (2026-11-22)
 
 - Works with OpenMap 0.8.12. The map menu has OpenMap's five new settings on their own pages: "Arrow size" and "Your

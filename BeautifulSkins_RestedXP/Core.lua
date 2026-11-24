@@ -20,7 +20,7 @@ ns.DEFAULTS = {
         upcoming = 3, stepNumbers = true, progress = true,
         lockBoxes = true,
         boxEdge = "AUTO", boxAlong = 0, -- window edge of the step boxes (AUTO|BOTTOM|TOP|LEFT|RIGHT) and the distance along it
-        hideCombat = false, hideInstance = true, blockV2 = true, animations = "SUBTLE",
+        hideCombat = false, hideInstance = false, blockV2 = true, animations = "SUBTLE",
         font = "EUI", -- "EUI" = the font of the EllesmereUI skin, "GAME" = the game's own font (Fonts page)
         sizeTitle = 16, sizeGoal = 15, sizeRow = 14, -- title (12-20), goals of the current step (11-20), upcoming rows (11-16)
         progressColor = false, -- false = accent; {r, g, b} = the user's own colour for the progress bars
